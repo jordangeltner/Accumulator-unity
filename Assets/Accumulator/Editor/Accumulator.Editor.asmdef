@@ -1,0 +1,5 @@
+{
+  "name": "Accumulator.Editor",
+  "references": ["Accumulator.Presentation"],
+  "includePlatforms": ["Editor"]
+}

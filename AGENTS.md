@@ -101,3 +101,42 @@ After completing a task, summarize:
 - Tests executed and results
 - Known issues
 - Recommended next step
+
+## Multi-Agent Execution Policy
+
+Native subagent delegation is available.
+
+### Team structure
+- Lead agent: architecture, planning, orchestration, integration, and verification.
+- Developer agent: implementation of assigned modules.
+- Tester agent: independent tests, edge cases, and code review.
+
+### Model routing
+- Use the strongest available reasoning model for architectural decisions and complex debugging.
+- Prefer less expensive models for well-defined implementation and testing tasks when their relative cost is verified.
+- Model overrides require `fork_turns: "none"`.
+- Never claim a cost saving unless pricing or usage evidence supports it.
+
+### Delegation
+- Use no more than three concurrent agents unless explicitly justified.
+- Delegate only tasks with clear requirements and acceptance criteria.
+- Prefer parallel work when agents can operate on independent files.
+- Avoid unnecessary delegation for small tasks.
+
+### Unity Editor ownership
+- Only one agent may interact with the mutable Unity Editor at a time.
+- The lead coordinates Editor access.
+- Other agents may inspect source files and run independent tests without modifying Editor state.
+- Do not allow simultaneous scene or shared-asset modifications.
+
+### Integration
+- The lead must review all delegated changes.
+- The lead must run final integration tests.
+- Subagent completion does not constitute successful verification.
+- Report which agents performed each task and which checks were actually executed.
+
+### Version control
+- Agents must not independently commit or push.
+- Avoid concurrent edits to the same files.
+- Use separate worktrees when parallel code modifications would otherwise conflict.
+- Preserve a clean, reviewable Git diff.

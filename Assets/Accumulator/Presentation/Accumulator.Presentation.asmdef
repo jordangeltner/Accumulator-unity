@@ -1,0 +1,6 @@
+{
+  "name": "Accumulator.Presentation",
+  "rootNamespace": "Accumulator.Presentation",
+  "references": ["Accumulator.Core", "Unity.ugui", "Unity.InputSystem"],
+  "autoReferenced": true
+}
