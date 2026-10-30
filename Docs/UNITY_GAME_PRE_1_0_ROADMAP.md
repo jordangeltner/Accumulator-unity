@@ -90,14 +90,31 @@ buffers can still favor Standard situationally.
 - Preserve a baseline scenario to tell whether the change improves decisions or merely increases output.
 - **Exit criterion:** At least two materially different approaches feel worth trying and have observable trade-offs; UI remains understandable.
 
-### 0.3 — Standalone tactical proof of fun
+### 0.3 — Skill production experiment
 
-**Question:** Is a short timing/precision skill challenge satisfying to repeat without economy rewards?
+**Scope revised October 29:** At the user's request, first test a timing game as
+an alternate resource-production mode within the economy. A separate tactical
+scene and humanoid/avatar are deferred. This revision intentionally brings a
+small, validated production reward forward from 0.4.
 
-- One placeholder humanoid/avatar control target; one simple challenge with readable feedback, timing and score.
-- Repeatable without diminishing rewards/attempt limits for the initial prototype.
+**Question:** Is a short timing challenge responsive, understandable and enjoyable
+as an optional alternative to passive production?
+
+- Add Passive/Timing selection to the Resource A Production slot. Passive remains the default.
+- Click a bar when its marker enters a labeled success zone, with a smaller critical zone inside. Success gives 1x reward, critical 1.5x, and outside gives zero. Show graded feedback and hit/attempt counts.
+- Timing replaces passive A output. Validated hits produce A using assigned Production capacity and efficiency; other processes continue.
+- Repeatable without diminishing rewards or a session attempt limit. One click per sweep is part of the timing challenge.
+- Preserve a toggle to disable the experiment; keep simulation and reward rules independent of Unity.
 - No art pipeline, customization, inventory, premium currency, or elaborate level design.
 - **Exit criterion:** Inputs are responsive; players understand success/failure; repeated attempts reveal skill improvement.
+
+Implementation and playtest instructions: [Prototype03.md](Prototype03.md).
+**Initial playtest accepted (October 29):** The user approved the current
+prototype for commit. Active play competes for attention with idle management,
+encouraging mode switching, and makes upgrade decisions more interesting.
+Long-term reward balance and repeated-attempt skill improvement remain open.
+Future ideas, deferred for now: a combo tracker for consecutive successes and/or
+criticals, with stacking bonus factors. These are not implemented.
 
 ### 0.4 — Combined active/idle loop
 
@@ -167,11 +184,11 @@ buffers can still favor Standard situationally.
 1. Which investment and allocation strategies are worth comparing in the 0.2 experiment, now that the Credits/XP and capacity baseline is implemented and tested?
 2. Are playtesters optimizing **lifetime XP**, near-term spendable Credits, or something else—and what makes that objective compelling?
 3. Do alternate operating modes create fundamentally different strategies or merely extra optimization bookkeeping?
-4. What is the simplest repeatable tactical challenge that feels skillful independent of rewards?
+4. Does the 0.3 timing-production game feel responsive and satisfying, and is its reward worth choosing without making passive production feel obsolete?
 5. What should the economic layer represent visually, and how does the customizable humanoid relate to it?
 6. How should server-validated idle growth and tactical rewards be bounded without undermining skill or trust?
 7. What monetization, if any, fits a Windows-first audience without compromising the main loop?
 
 ## 6. Suggested first task when resuming
 
-> Playtest the selectable Standard/Fast Conversion experiment described in `Docs/Prototype02.md`. Compare identical starts at 5/10/15 minutes; evaluate strategic trade-offs and human comprehension, not output increases alone. The 0.1 repository inspection and baseline verification are complete.
+> Playtest the Passive/Timing Production experiment described in `Docs/Prototype03.md`. Assess input responsiveness, clear hit/miss feedback, repeated-attempt skill improvement and willingness to switch back to passive production. 0.2 is accepted after the user's five-minute playtest; long-term Standard/Fast balance remains open.

@@ -10,6 +10,9 @@ namespace Accumulator.Presentation
         public const string StandardConversion = "Standard";
         public const string FastConversion = "Fast";
         public const string FastConversionUpgradeEffect = "+0.75 B / capacity /s";
+        public const string PassiveProduction = "Passive";
+        public const string TimingProduction = "Timing";
+        public const string TimingProductionUpgradeEffect = "+2 A / capacity / success; +3 A / capacity / critical";
         public const string ResourceAColor = "#79D2FF";
         public const string ResourceBColor = "#FFD279";
         public const string CreditsColor = "#76E5B8";

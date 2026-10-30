@@ -9,6 +9,21 @@ namespace Accumulator.Core
         Fast = 1
     }
 
+    /// <summary>Stable modes for the single A production slot.</summary>
+    public enum ProductionMode
+    {
+        Passive = 0,
+        Timing = 1
+    }
+
+    public enum TimingResult
+    {
+        None = 0,
+        Miss = 1,
+        Success = 2,
+        Critical = 3
+    }
+
     /// <summary>Deterministic fixed-point economy simulation, independent of Unity.</summary>
     public sealed class Economy
     {
@@ -21,6 +36,12 @@ namespace Accumulator.Core
         public const int InitialCapacity = 6;
         public const int MaxCapacity = 10;
         public const int TicksPerSecond = 10;
+        public const int TimingSweepMilliseconds = 1500;
+        public const int TimingPositionScale = 10000;
+        public const int TimingTargetStart = 4000;
+        public const int TimingTargetEnd = 6000;
+        public const int TimingCriticalStart = 4700;
+        public const int TimingCriticalEnd = 5300;
 
         /// <summary>Stable allocation and upgrade identifiers.</summary>
         public const int AProducer = 0;
@@ -42,6 +63,7 @@ namespace Accumulator.Core
         private readonly int[] _allocations = { 3, 2, 1 };
         private readonly int[] _levels = { 0, 0, 0 };
         private int _capacity = InitialCapacity;
+        private long _lastTimingAttemptSweep = -1;
 
         public long A { get; private set; }
         public long B { get; private set; }
@@ -51,11 +73,111 @@ namespace Accumulator.Core
         public int Capacity => _capacity;
         public bool AlternateConversionEnabled { get; }
         public ConversionMode SelectedConversionMode { get; private set; } = ConversionMode.Standard;
+        public bool TimingProductionEnabled { get; }
+        public ProductionMode SelectedProductionMode { get; private set; } = ProductionMode.Passive;
+        public long TimingElapsedMilliseconds { get; private set; }
+        public long TimingAttempts { get; private set; }
+        public long TimingHits { get; private set; }
+        public TimingResult LastTimingResult { get; private set; } = TimingResult.None;
 
-        /// <summary>Creates a fresh baseline session, optionally enabling the Conversion experiment.</summary>
-        public Economy(bool alternateConversionEnabled = false)
+        /// <summary>A triangle wave with one 1.5-second sweep in each direction.</summary>
+        public int TimingPosition
+        {
+            get
+            {
+                long sweep = TimingElapsedMilliseconds / TimingSweepMilliseconds;
+                int position = (int)(TimingElapsedMilliseconds % TimingSweepMilliseconds)
+                    * TimingPositionScale / TimingSweepMilliseconds;
+                return sweep % 2 == 0 ? position : TimingPositionScale - position;
+            }
+        }
+
+        /// <summary>One attempt is available per sweep, including a miss; mode changes never reset it.</summary>
+        public bool TimingAttemptAvailable =>
+            TimingElapsedMilliseconds / TimingSweepMilliseconds != _lastTimingAttemptSweep;
+
+        /// <summary>Creates a fresh baseline session, optionally enabling the process experiments.</summary>
+        public Economy(bool alternateConversionEnabled = false, bool timingProductionEnabled = false)
         {
             AlternateConversionEnabled = alternateConversionEnabled;
+            TimingProductionEnabled = timingProductionEnabled;
+        }
+
+        /// <summary>Changes future A production without spending, advancing time, or resetting a timing attempt.</summary>
+        public bool TrySetProductionMode(ProductionMode mode, out string reason)
+        {
+            if (mode != ProductionMode.Passive && mode != ProductionMode.Timing)
+            {
+                reason = "Unknown production mode.";
+                return false;
+            }
+            if (mode == ProductionMode.Timing && !TimingProductionEnabled)
+            {
+                reason = "Timing production is disabled for this session.";
+                return false;
+            }
+            SelectedProductionMode = mode;
+            reason = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Advances explicit local timing input independently of economy ticks. Passive mode freezes
+        /// the timing challenge. This input is a prototype mechanic, not trusted server elapsed time.
+        /// </summary>
+        public void AdvanceTimingMilliseconds(int count)
+        {
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            if (SelectedProductionMode != ProductionMode.Timing) return;
+            TimingElapsedMilliseconds = checked(TimingElapsedMilliseconds + count);
+        }
+
+        /// <summary>
+        /// Consumes the current sweep's attempt. Success grants two passive seconds of A;
+        /// the smaller inclusive critical zone grants three. Outside success grants nothing.
+        /// Rewards use current production workers and efficiency level. All changes
+        /// commit together; arithmetic overflow leaves state unchanged.
+        /// </summary>
+        public bool TryStrikeTiming(out bool hit, out long resourceAReward, out string reason)
+        {
+            hit = false;
+            resourceAReward = 0;
+            if (!TimingProductionEnabled || SelectedProductionMode != ProductionMode.Timing)
+            {
+                reason = "Timing production is not active.";
+                return false;
+            }
+            if (_allocations[AProducer] == 0)
+            {
+                reason = "Assign capacity to production before attempting timing.";
+                return false;
+            }
+            if (!TimingAttemptAvailable)
+            {
+                reason = "The current timing sweep already has an attempt.";
+                return false;
+            }
+
+            int position = TimingPosition;
+            bool nextHit = position >= TimingTargetStart && position <= TimingTargetEnd;
+            bool critical = position >= TimingCriticalStart && position <= TimingCriticalEnd;
+            var result = critical ? TimingResult.Critical : nextHit ? TimingResult.Success : TimingResult.Miss;
+            long reward = nextHit
+                ? checked((long)_allocations[AProducer] * (2L + _levels[AProducer]) * Scale * (critical ? 3 : 2))
+                : 0;
+            long nextA = checked(A + reward);
+            long nextAttempts = checked(TimingAttempts + 1);
+            long nextHits = checked(TimingHits + (nextHit ? 1 : 0));
+
+            A = nextA;
+            TimingAttempts = nextAttempts;
+            TimingHits = nextHits;
+            LastTimingResult = result;
+            _lastTimingAttemptSweep = TimingElapsedMilliseconds / TimingSweepMilliseconds;
+            hit = nextHit;
+            resourceAReward = reward;
+            reason = null;
+            return true;
         }
 
         /// <summary>Changes future Conversion throughput without spending or advancing simulation time.</summary>
@@ -190,7 +312,7 @@ namespace Accumulator.Core
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             for (var i = 0; i < count; i++)
             {
-                var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode);
+                var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode, SelectedProductionMode);
                 var nextTicks = checked(Ticks + 1);
                 // Calculate both balances first so overflow cannot partially commit a tick.
                 var nextCredits = checked(Credits + flow.Throughput.CreditsProduced);
@@ -206,15 +328,17 @@ namespace Accumulator.Core
         /// <summary>Calculates next-tick production and starvation without mutating state.</summary>
         public Throughput Preview()
         {
-            var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode);
+            var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode, SelectedProductionMode);
             return flow.Throughput;
         }
 
-        private static Flow Calculate(long a, long b, int[] allocation, int[] levels, ConversionMode mode)
+        private static Flow Calculate(long a, long b, int[] allocation, int[] levels,
+            ConversionMode mode, ProductionMode productionMode)
         {
             checked
             {
-                var aProduced = (long)allocation[AProducer] * (2L + levels[AProducer]) * Scale / TicksPerSecond;
+                var aProduced = productionMode == ProductionMode.Timing ? 0
+                    : (long)allocation[AProducer] * (2L + levels[AProducer]) * Scale / TicksPerSecond;
                 var aDemand = (long)allocation[Converter] * Scale / TicksPerSecond;
                 var availableA = a + aProduced;
                 var aPerConversion = mode == ConversionMode.Fast ? 4 : 2;

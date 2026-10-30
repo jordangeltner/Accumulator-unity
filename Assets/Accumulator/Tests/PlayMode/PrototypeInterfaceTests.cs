@@ -135,12 +135,14 @@ namespace Accumulator.Tests.PlayMode
             root = new GameObject("TestBaseline");
             root.SetActive(false);
             var controller = root.AddComponent<PrototypeController>();
-            JsonUtility.FromJsonOverwrite("{\"enableAlternateConversion\":false}", controller);
+            JsonUtility.FromJsonOverwrite("{\"enableAlternateConversion\":false,\"enableTimingProduction\":false}", controller);
             root.SetActive(true);
             controller.TogglePause();
             yield return null;
             Assert.That(controller.Simulation.AlternateConversionEnabled, Is.False);
             Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ConversionMode"), Is.False);
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ProductionMode"), Is.False);
+            Assert.That(controller.Simulation.TimingProductionEnabled, Is.False);
             controller.ToggleConversionMode();
             Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
             controller.Simulation.AdvanceTicks(10);
@@ -171,6 +173,95 @@ namespace Accumulator.Tests.PlayMode
             Assert.That(FindText("ConversionModeDetails").text, Does.Contain("2 A"));
         }
         private Text FindText(string name) => root.GetComponentsInChildren<Text>().Single(t => t.name == name);
+
+        [UnityTest]
+        public IEnumerator TimingBarClickAwardsAAndCannotRepeatOrBypassPause()
+        {
+            root = new GameObject("TestTimingPrototype");
+            var controller = root.AddComponent<PrototypeController>();
+            controller.TogglePause();
+            yield return null;
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "TimingBar"), Is.False);
+            ClickButton("ProductionMode");
+            Assert.That(controller.Simulation.SelectedProductionMode, Is.EqualTo(ProductionMode.Timing));
+            yield return null; // Allow the newly expanded layout to complete while paused.
+            controller.Simulation.AdvanceTimingMilliseconds(750);
+            controller.Refresh();
+            Assert.That(FindButton("TimingBar").interactable, Is.False);
+            controller.StrikeTiming();
+            Assert.That(controller.Simulation.TimingAttempts, Is.Zero);
+            var marker = root.GetComponentsInChildren<RectTransform>().Single(t => t.name == "TimingMarker");
+            Assert.That(marker.anchorMin.x, Is.EqualTo(0.5f).Within(0.001f));
+            Assert.That(marker.rect.width, Is.GreaterThan(0));
+            controller.TogglePause();
+            Assert.That(FindButton("TimingBar").interactable, Is.True);
+            ClickButton("TimingBar");
+            Assert.That(controller.Simulation.A, Is.EqualTo(18 * Economy.Scale));
+            Assert.That(controller.Simulation.Credits, Is.Zero);
+            Assert.That(controller.Simulation.LifetimeXp, Is.Zero);
+            Assert.That(controller.Simulation.TimingHits, Is.EqualTo(1));
+            Assert.That(controller.Simulation.TimingAttempts, Is.EqualTo(1));
+            Assert.That(controller.Simulation.LastTimingResult, Is.EqualTo(TimingResult.Critical));
+            Assert.That(FindText("TimingStatus").text, Does.Contain("CRITICAL!"));
+            Assert.That(FindText("TimingSuccessLeft").text, Is.EqualTo("SUCCESS"));
+            Assert.That(FindText("TimingCriticalLabel").text, Is.EqualTo("CRITICAL"));
+            Assert.That(FindButton("TimingBar").interactable, Is.False);
+            controller.StrikeTiming();
+            Assert.That(controller.Simulation.A, Is.EqualTo(18 * Economy.Scale));
+            Assert.That(controller.Simulation.TimingAttempts, Is.EqualTo(1));
+            controller.Simulation.AdvanceTimingMilliseconds(1575); // Reverse sweep, position 4500: success outside critical.
+            controller.Refresh();
+            ClickButton("TimingBar");
+            Assert.That(controller.Simulation.LastTimingResult, Is.EqualTo(TimingResult.Success));
+            Assert.That(controller.Simulation.A, Is.EqualTo(30 * Economy.Scale));
+            Assert.That(controller.Simulation.TimingHits, Is.EqualTo(2));
+            Assert.That(FindText("TimingStatus").text, Does.Contain("SUCCESS!"));
+            ClickButton("ProductionMode");
+            Assert.That(controller.Simulation.SelectedProductionMode, Is.EqualTo(ProductionMode.Passive));
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "TimingBar"), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator TimingModeRestrictsSpeedAndMissesGiveNoReward()
+        {
+            root = new GameObject("TestTimingPrototype");
+            var controller = root.AddComponent<PrototypeController>();
+            controller.TogglePause();
+            yield return null;
+            controller.SetSpeed(20);
+            ClickButton("ProductionMode");
+            yield return null;
+            Assert.That(controller.Speed, Is.EqualTo(1));
+            Assert.That(FindButton("Speed5").interactable, Is.False);
+            Assert.That(FindButton("Speed20").interactable, Is.False);
+            controller.SetSpeed(20);
+            Assert.That(controller.Speed, Is.EqualTo(1));
+            controller.TogglePause();
+            ClickButton("TimingBar");
+            Assert.That(controller.Simulation.TimingHits, Is.Zero);
+            Assert.That(controller.Simulation.TimingAttempts, Is.EqualTo(1));
+            Assert.That(controller.Simulation.A, Is.Zero);
+            Assert.That(FindText("TimingStatus").text, Does.Contain("MISS"));
+            ClickButton("ProductionMode");
+            Assert.That(FindButton("Speed20").interactable, Is.True);
+            controller.SetSpeed(20);
+            Assert.That(controller.Speed, Is.EqualTo(20));
+        }
+
+        [UnityTest]
+        public IEnumerator TimingClockAdvancesAndFreezesWithPause()
+        {
+            root = new GameObject("TestTimingPrototype");
+            var controller = root.AddComponent<PrototypeController>();
+            controller.ToggleProductionMode();
+            yield return new WaitForSecondsRealtime(0.12f);
+            Assert.That(controller.Simulation.TimingElapsedMilliseconds, Is.GreaterThan(0));
+            Assert.That(controller.Simulation.A, Is.Zero, "Timing mode must not produce passive A.");
+            controller.TogglePause();
+            long elapsed = controller.Simulation.TimingElapsedMilliseconds;
+            yield return new WaitForSecondsRealtime(0.12f);
+            Assert.That(controller.Simulation.TimingElapsedMilliseconds, Is.EqualTo(elapsed));
+        }
 
         private void ClickButton(string name)
         {
