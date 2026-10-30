@@ -54,34 +54,40 @@ namespace Accumulator.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator MilestonesAndStarvationAreVisibleWithoutAddingMechanics()
+        public IEnumerator LifetimeXpAndStarvationStayVisibleWithOptionalRateDetails()
         {
             root = new GameObject("TestPrototype");
             var controller = root.AddComponent<PrototypeController>();
             controller.TogglePause();
             yield return null;
+            Assert.That(controller.ShowDetails, Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>(true).Any(t => t.name == "Milestones"), Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>(true).Any(t => t.name == "ThroughputLegend" || t.name == "CostLegend"), Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>().Any(t => t.text.Contains("6.00/s")), Is.True);
             controller.Simulation.AdvanceTicks(20000);
             controller.Refresh();
-            var goals = FindText("Milestones").text;
-            Assert.That(goals, Does.Contain("[REACHED] 100"));
-            Assert.That(goals, Does.Contain("[REACHED] 500"));
-            Assert.That(goals, Does.Contain("[REACHED] 2,000"));
+            Assert.That(FindText("Balances").text, Does.Contain("Lifetime XP"));
+            Assert.That(FindText("Balances").text, Does.Contain("2,000.00"));
             Assert.That(controller.Simulation.Level(0), Is.Zero);
             Assert.That(controller.Simulation.Level(1), Is.Zero);
             Assert.That(controller.Simulation.Level(2), Is.Zero);
             Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(2000 * Economy.Scale));
+            yield return null;
             ClickButton("ExpandCapacity");
             Assert.That(controller.Simulation.Credits, Is.EqualTo(1880 * Economy.Scale));
             Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(2000 * Economy.Scale));
-            Assert.That(FindText("Milestones").text, Is.EqualTo(goals));
-            // Drain all B with no supply, then verify the actual/potential UI describes starvation.
+            // Drain B with no supply. The short warning stays visible without details.
             controller.Simulation.TrySetAllocation(0, 0, out _);
             controller.Simulation.TrySetAllocation(1, 0, out _);
             controller.Simulation.TrySetAllocation(2, 6, out _);
             controller.Simulation.AdvanceTicks(4000);
             controller.Refresh();
             var rates = root.GetComponentsInChildren<Text>().Select(t => t.text).ToArray();
-            Assert.That(rates.Any(t => t.Contains("INPUT STARVED:") && t.Contains(">B</color>")), Is.True);
+            Assert.That(rates.Any(t => t.Contains("Need ") && t.Contains(">B</color>")), Is.True);
+            Assert.That(rates.Any(t => t.Contains("0.00 / 6.00")), Is.False);
+            ClickButton("Details");
+            Assert.That(controller.ShowDetails, Is.True);
+            rates = root.GetComponentsInChildren<Text>().Select(t => t.text).ToArray();
             Assert.That(rates.Any(t => t.Contains("0.00 / 6.00")), Is.True);
         }
 
@@ -142,6 +148,7 @@ namespace Accumulator.Tests.PlayMode
             Assert.That(controller.Simulation.AlternateConversionEnabled, Is.False);
             Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ConversionMode"), Is.False);
             Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ProductionMode"), Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>().Any(t => t.name == "NextUnlock"), Is.False);
             Assert.That(controller.Simulation.TimingProductionEnabled, Is.False);
             controller.ToggleConversionMode();
             Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
@@ -156,13 +163,20 @@ namespace Accumulator.Tests.PlayMode
             var controller = root.AddComponent<PrototypeController>();
             controller.TogglePause();
             yield return null;
+            SeedUnlockedModes(controller);
+            yield return null;
             Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            Assert.That(controller.ShowDetails, Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>().Any(t => t.name == "ConversionModeDetails" || t.name == "ProductionModeDetails"), Is.False);
+            ClickButton("Details");
+            Assert.That(controller.ShowDetails, Is.True);
+            yield return null;
             Assert.That(FindText("ConversionModeDetails").text, Does.Contain("2 A"));
             ClickButton("ConversionMode");
             Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Fast));
             Assert.That(controller.Simulation.Ticks, Is.Zero);
             Assert.That(controller.Simulation.Credits, Is.Zero);
-            Assert.That(controller.Simulation.LifetimeXp, Is.Zero);
+            Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(Economy.TimingProductionUnlockXp * Economy.Scale));
             Assert.That(FindText("ConversionModeDetails").text, Does.Contain("4 A"));
             Assert.That(FindText("ConversionModeDetails").text, Does.Contain("1.5 B"));
             var effects = root.GetComponentsInChildren<Text>().Select(t => t.text).ToArray();
@@ -171,6 +185,9 @@ namespace Accumulator.Tests.PlayMode
             ClickButton("ConversionMode");
             Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
             Assert.That(FindText("ConversionModeDetails").text, Does.Contain("2 A"));
+            ClickButton("Details");
+            Assert.That(controller.ShowDetails, Is.False);
+            Assert.That(root.GetComponentsInChildren<Text>().Any(t => t.name == "ConversionModeDetails" || t.name == "ProductionModeDetails"), Is.False);
         }
         private Text FindText(string name) => root.GetComponentsInChildren<Text>().Single(t => t.name == name);
 
@@ -180,6 +197,8 @@ namespace Accumulator.Tests.PlayMode
             root = new GameObject("TestTimingPrototype");
             var controller = root.AddComponent<PrototypeController>();
             controller.TogglePause();
+            yield return null;
+            SeedUnlockedModes(controller);
             yield return null;
             Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "TimingBar"), Is.False);
             ClickButton("ProductionMode");
@@ -198,7 +217,7 @@ namespace Accumulator.Tests.PlayMode
             ClickButton("TimingBar");
             Assert.That(controller.Simulation.A, Is.EqualTo(18 * Economy.Scale));
             Assert.That(controller.Simulation.Credits, Is.Zero);
-            Assert.That(controller.Simulation.LifetimeXp, Is.Zero);
+            Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(Economy.TimingProductionUnlockXp * Economy.Scale));
             Assert.That(controller.Simulation.TimingHits, Is.EqualTo(1));
             Assert.That(controller.Simulation.TimingAttempts, Is.EqualTo(1));
             Assert.That(controller.Simulation.LastTimingResult, Is.EqualTo(TimingResult.Critical));
@@ -228,6 +247,8 @@ namespace Accumulator.Tests.PlayMode
             var controller = root.AddComponent<PrototypeController>();
             controller.TogglePause();
             yield return null;
+            SeedUnlockedModes(controller);
+            yield return null;
             controller.SetSpeed(20);
             ClickButton("ProductionMode");
             yield return null;
@@ -253,6 +274,7 @@ namespace Accumulator.Tests.PlayMode
         {
             root = new GameObject("TestTimingPrototype");
             var controller = root.AddComponent<PrototypeController>();
+            SeedUnlockedModes(controller);
             controller.ToggleProductionMode();
             yield return new WaitForSecondsRealtime(0.12f);
             Assert.That(controller.Simulation.TimingElapsedMilliseconds, Is.GreaterThan(0));
@@ -261,6 +283,57 @@ namespace Accumulator.Tests.PlayMode
             long elapsed = controller.Simulation.TimingElapsedMilliseconds;
             yield return new WaitForSecondsRealtime(0.12f);
             Assert.That(controller.Simulation.TimingElapsedMilliseconds, Is.EqualTo(elapsed));
+        }
+
+        [UnityTest]
+        public IEnumerator EarnedXpUnlocksVisibleModesWithoutSpendingOrAutoSwitching()
+        {
+            root = new GameObject("TestProgression");
+            var controller = root.AddComponent<PrototypeController>();
+            controller.TogglePause();
+            yield return null;
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ConversionMode" || b.name == "ProductionMode"), Is.False);
+            Assert.That(FindText("NextUnlock").text, Does.Contain("Fast Conversion"));
+            Assert.That(FindText("NextUnlock").text, Does.Contain("100 XP"));
+            controller.ToggleConversionMode();
+            controller.ToggleProductionMode();
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            Assert.That(controller.Simulation.SelectedProductionMode, Is.EqualTo(ProductionMode.Passive));
+            controller.Simulation.AdvanceTicks(999);
+            controller.Refresh();
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ConversionMode"), Is.False);
+            controller.Simulation.AdvanceTicks(1);
+            controller.Refresh();
+            yield return null;
+            Assert.That(FindButton("ConversionMode").interactable, Is.True);
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ProductionMode"), Is.False);
+            Assert.That(FindText("NextUnlock").text, Does.Contain("Timing Production"));
+            Assert.That(FindText("NextUnlock").text, Does.Contain("500 XP"));
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            ClickButton("ConversionMode");
+            ClickButton("Purchase0");
+            Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(100 * Economy.Scale));
+            Assert.That(FindButton("ConversionMode").interactable, Is.True);
+            controller.Simulation.AdvanceTicks(4000);
+            controller.Refresh();
+            yield return null;
+            Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(500 * Economy.Scale));
+            Assert.That(FindButton("ProductionMode").interactable, Is.True);
+            Assert.That(root.GetComponentsInChildren<Text>().Any(t => t.name == "NextUnlock"), Is.False);
+            Assert.That(controller.Simulation.SelectedProductionMode, Is.EqualTo(ProductionMode.Passive));
+            long credits = controller.Simulation.Credits;
+            ClickButton("ProductionMode");
+            Assert.That(controller.Simulation.SelectedProductionMode, Is.EqualTo(ProductionMode.Timing));
+            Assert.That(controller.Simulation.LifetimeXp, Is.EqualTo(500 * Economy.Scale));
+            Assert.That(controller.Simulation.Credits, Is.EqualTo(credits));
+        }
+
+        // Mechanics tests need empty inventories; progression is earned through real ticks in the test above.
+        private static void SeedUnlockedModes(PrototypeController controller)
+        {
+            typeof(Economy).GetProperty(nameof(Economy.LifetimeXp)).GetSetMethod(true)
+                .Invoke(controller.Simulation, new object[] { Economy.TimingProductionUnlockXp * Economy.Scale });
+            controller.Refresh();
         }
 
         private void ClickButton(string name)

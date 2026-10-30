@@ -32,8 +32,8 @@ namespace Accumulator.Tests.EditMode
         {
             var baseline = new Economy();
             var experiment = new Economy(timingProductionEnabled: true);
-            baseline.AdvanceTicks(1000);
-            experiment.AdvanceTicks(1000);
+            baseline.AdvanceTicks(5000);
+            experiment.AdvanceTicks(5000);
             Assert.That(State(experiment), Is.EqualTo(State(baseline)));
             var before = State(experiment);
             Assert.That(experiment.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
@@ -47,7 +47,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void TimingStopsPassiveAWhileDownstreamProductionContinues()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             economy.AdvanceTicks(100);
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             var preview = economy.Preview();
@@ -69,7 +69,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void ExplicitTimingClockDoesNotAdvanceEconomyAndRejectsNegativeTime()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.Throws<ArgumentOutOfRangeException>(() => economy.AdvanceTimingMilliseconds(-1));
             economy.AdvanceTimingMilliseconds(750);
             Assert.That(economy.TimingElapsedMilliseconds, Is.Zero);
@@ -101,7 +101,7 @@ namespace Accumulator.Tests.EditMode
         [TestCase(2296, 4694, TimingResult.Success, 12)]
         public void ZonesIncludeBothBoundariesInForwardAndReverseSweeps(int elapsed, int position, TimingResult expectedResult, int expectedReward)
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             economy.AdvanceTimingMilliseconds(elapsed);
             Assert.That(economy.TimingPosition, Is.EqualTo(position));
@@ -115,14 +115,14 @@ namespace Accumulator.Tests.EditMode
             Assert.That(economy.TimingAttempts, Is.EqualTo(1));
             Assert.That(economy.TimingHits, Is.EqualTo(expectedHit ? 1 : 0));
             Assert.That(economy.Credits, Is.Zero);
-            Assert.That(economy.LifetimeXp, Is.Zero);
+            Assert.That(economy.LifetimeXp, Is.EqualTo(500 * Economy.Scale));
         }
 
         [TestCase(600, TimingResult.Success, 12)]
         [TestCase(750, TimingResult.Critical, 18)]
         public void HitRewardUsesCurrentWorkersAndProductionUpgrade(int elapsed, TimingResult expectedResult, int expectedReward)
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             economy.AdvanceTicks(200);
             Assert.That(economy.TryPurchase(Economy.AProducer, out _), Is.True);
             Assert.That(economy.TrySetAllocation(Economy.AProducer, 2, out _), Is.True);
@@ -144,7 +144,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void OneAttemptPerSweepSurvivesModeSwitchAndMiss()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             Assert.That(economy.TryStrikeTiming(out var hit, out var reward, out _), Is.True);
             Assert.That(hit, Is.False);
@@ -175,7 +175,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void RejectedStrikesPreserveCriticalResultAndCannotDoubleAward()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             economy.AdvanceTimingMilliseconds(750);
             Assert.That(economy.TryStrikeTiming(out _, out var reward, out _), Is.True);
@@ -201,7 +201,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void ZeroWorkersRejectStrikeWithoutConsumingSweep()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             Assert.That(economy.TrySetAllocation(Economy.AProducer, 0, out _), Is.True);
             economy.AdvanceTimingMilliseconds(750);
@@ -219,8 +219,8 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void TimingClockBatchesMatchSingleMillisecondsAcrossSweepBoundaries()
         {
-            var batched = new Economy(timingProductionEnabled: true);
-            var repeated = new Economy(timingProductionEnabled: true);
+            var batched = UnlockedEconomy();
+            var repeated = UnlockedEconomy();
             Assert.That(batched.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             Assert.That(repeated.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             foreach (var elapsed in new[] { 750, 1500, 2250, 3000 })
@@ -241,7 +241,7 @@ namespace Accumulator.Tests.EditMode
         [TestCase(nameof(Economy.TimingHits))]
         public void StrikeOverflowDoesNotPartiallyCommitRewardOrConsumeSweep(string property)
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             Assert.That(economy.TryStrikeTiming(out _, out _, out _), Is.True);
             Assert.That(economy.LastTimingResult, Is.EqualTo(TimingResult.Miss));
@@ -256,11 +256,21 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void TimingClockOverflowDoesNotAdvancePartially()
         {
-            var economy = new Economy(timingProductionEnabled: true);
+            var economy = UnlockedEconomy();
             Assert.That(economy.TrySetProductionMode(ProductionMode.Timing, out _), Is.True);
             SetLongProperty(economy, nameof(Economy.TimingElapsedMilliseconds), long.MaxValue);
             Assert.Throws<OverflowException>(() => economy.AdvanceTimingMilliseconds(1));
             Assert.That(economy.TimingElapsedMilliseconds, Is.EqualTo(long.MaxValue));
+        }
+
+        // Keep timing/flow fixtures empty; progression is exercised using earned XP
+        // independently in ModeProgressionTests.
+        private static Economy UnlockedEconomy()
+        {
+            var economy = new Economy(timingProductionEnabled: true);
+            SetLongProperty(economy, nameof(Economy.LifetimeXp), 500 * Economy.Scale);
+            Assert.That(economy.TimingProductionUnlocked, Is.True);
+            return economy;
         }
 
         private static void SetLongProperty(Economy economy, string property, long value)

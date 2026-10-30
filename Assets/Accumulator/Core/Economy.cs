@@ -43,6 +43,10 @@ namespace Accumulator.Core
         public const int TimingCriticalStart = 4700;
         public const int TimingCriticalEnd = 5300;
 
+        /// <summary>Lifetime XP milestones in displayed units; unlocks never spend XP.</summary>
+        public const long FastConversionUnlockXp = 100;
+        public const long TimingProductionUnlockXp = 500;
+
         /// <summary>Stable allocation and upgrade identifiers.</summary>
         public const int AProducer = 0;
         public const int Converter = 1;
@@ -72,8 +76,12 @@ namespace Accumulator.Core
         public long Ticks { get; private set; }
         public int Capacity => _capacity;
         public bool AlternateConversionEnabled { get; }
+        public bool FastConversionUnlocked =>
+            AlternateConversionEnabled && LifetimeXp >= FastConversionUnlockXp * Scale;
         public ConversionMode SelectedConversionMode { get; private set; } = ConversionMode.Standard;
         public bool TimingProductionEnabled { get; }
+        public bool TimingProductionUnlocked =>
+            TimingProductionEnabled && LifetimeXp >= TimingProductionUnlockXp * Scale;
         public ProductionMode SelectedProductionMode { get; private set; } = ProductionMode.Passive;
         public long TimingElapsedMilliseconds { get; private set; }
         public long TimingAttempts { get; private set; }
@@ -114,6 +122,11 @@ namespace Accumulator.Core
             if (mode == ProductionMode.Timing && !TimingProductionEnabled)
             {
                 reason = "Timing production is disabled for this session.";
+                return false;
+            }
+            if (mode == ProductionMode.Timing && !TimingProductionUnlocked)
+            {
+                reason = "Timing production unlocks at " + TimingProductionUnlockXp + " lifetime XP.";
                 return false;
             }
             SelectedProductionMode = mode;
@@ -191,6 +204,11 @@ namespace Accumulator.Core
             if (mode == ConversionMode.Fast && !AlternateConversionEnabled)
             {
                 reason = "Alternate conversion is disabled for this session.";
+                return false;
+            }
+            if (mode == ConversionMode.Fast && !FastConversionUnlocked)
+            {
+                reason = "Fast conversion unlocks at " + FastConversionUnlockXp + " lifetime XP.";
                 return false;
             }
             SelectedConversionMode = mode;

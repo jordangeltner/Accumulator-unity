@@ -1,5 +1,9 @@
 # Prototype 0.3 — Timing production
 
+Progression update: Timing now requires 500 lifetime XP in addition to its
+experiment toggle. See [Prototype05.md](Prototype05.md); the rules below record
+the accepted timing-game prototype.
+
 Status: current prototype accepted after the user's initial playtest; further
 iteration is deferred. Long-term reward balance and skill improvement remain open.
 

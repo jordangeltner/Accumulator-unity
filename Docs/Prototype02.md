@@ -1,5 +1,9 @@
 # Prototype 0.2 — Conversion mode experiment
 
+Progression update: Fast now requires 100 lifetime XP in addition to its experiment
+toggle. See [Prototype05.md](Prototype05.md); the rules below record the original
+mode experiment.
+
 Status: initial experiment complete. The user's five-minute manual playtest found
 both modes useful and allocation strategies more complex, dynamic and flexible.
 Long-term balance remains open, especially as Production upgrades favor Fast.

@@ -26,7 +26,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void SwitchingModesIsFreeAndDoesNotAdvanceOrReallocate()
         {
-            var economy = new Economy(true);
+            var economy = UnlockedEconomy();
             economy.AdvanceTicks(1200);
             Assert.That(economy.TryPurchase(Economy.Converter, out _), Is.True);
             var before = State(economy);
@@ -46,7 +46,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void FastTradesTwiceTheInputForFiftyPercentMoreConversionOutput()
         {
-            var economy = new Economy(true);
+            var economy = UnlockedEconomy();
             SetAllocations(economy, 3, 1, 2);
             var standard = economy.Preview();
             Assert.That(standard.AConsumed, Is.EqualTo(2000));
@@ -64,13 +64,13 @@ namespace Accumulator.Tests.EditMode
             Assert.That(economy.A, Is.EqualTo(2 * Economy.Scale));
             Assert.That(economy.B, Is.Zero);
             Assert.That(economy.Credits, Is.EqualTo(15000));
-            Assert.That(economy.LifetimeXp, Is.EqualTo(15000));
+            Assert.That(economy.LifetimeXp, Is.EqualTo(100 * Economy.Scale + 15000));
         }
 
         [Test]
         public void FastUsesSameTickInputAndClampsStarvedStages()
         {
-            var economy = new Economy(true);
+            var economy = UnlockedEconomy();
             SetAllocations(economy, 1, 3, 2);
             Assert.That(economy.TrySetConversionMode(ConversionMode.Fast, out _), Is.True);
             var preview = economy.Preview();
@@ -88,7 +88,7 @@ namespace Accumulator.Tests.EditMode
             Assert.That(economy.A, Is.Zero);
             Assert.That(economy.B, Is.Zero);
             Assert.That(economy.Credits, Is.EqualTo(preview.CreditsProduced));
-            Assert.That(economy.LifetimeXp, Is.EqualTo(preview.XpProduced));
+            Assert.That(economy.LifetimeXp, Is.EqualTo(100 * Economy.Scale + preview.XpProduced));
             economy.AdvanceTicks(999);
             Assert.That(economy.A, Is.Zero);
             Assert.That(economy.B, Is.Zero);
@@ -103,7 +103,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void ExistingConverterUpgradeMultipliesBothModes()
         {
-            var economy = new Economy(true);
+            var economy = UnlockedEconomy();
             economy.AdvanceTicks(400);
             Assert.That(economy.TryPurchase(Economy.Converter, out _), Is.True);
             SetAllocations(economy, 3, 1, 2);
@@ -118,7 +118,7 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void FastFractionalOutputRoundsDownToIntegerSubunits()
         {
-            var economy = new Economy(true);
+            var economy = UnlockedEconomy();
             economy.AdvanceTicks(1200);
             for (var index = 0; index < 3; index++)
                 Assert.That(economy.TryPurchase(index, out _), Is.True);
@@ -148,8 +148,8 @@ namespace Accumulator.Tests.EditMode
         [Test]
         public void MixedModeBatchesMatchSingleTicksExactly()
         {
-            var batched = new Economy(true);
-            var repeated = new Economy(true);
+            var batched = UnlockedEconomy();
+            var repeated = UnlockedEconomy();
             var modes = new[] { ConversionMode.Standard, ConversionMode.Fast, ConversionMode.Standard, ConversionMode.Fast };
             var counts = new[] { 1000, 137, 251, 997 };
             for (var stage = 0; stage < modes.Length; stage++)
@@ -169,6 +169,18 @@ namespace Accumulator.Tests.EditMode
                     SetAllocations(repeated, 1, 3, 2);
                 }
             }
+        }
+
+        // Isolate flow mechanics from progression without pre-filling A/B buffers.
+        // ModeProgressionTests earns its XP through actual simulation ticks.
+        private static Economy UnlockedEconomy()
+        {
+            var economy = new Economy(true);
+            var setter = typeof(Economy).GetProperty(nameof(Economy.LifetimeXp)).GetSetMethod(true);
+            Assert.That(setter, Is.Not.Null);
+            setter.Invoke(economy, new object[] { 100 * Economy.Scale });
+            Assert.That(economy.FastConversionUnlocked, Is.True);
+            return economy;
         }
 
         private static void SetAllocations(Economy economy, int a, int b, int d)
