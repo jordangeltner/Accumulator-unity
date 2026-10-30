@@ -128,6 +128,48 @@ namespace Accumulator.Tests.PlayMode
         }
 
         private Button FindButton(string name) => root.GetComponentsInChildren<Button>().Single(b => b.name == name);
+
+        [UnityTest]
+        public IEnumerator DisablingExperimentBeforeAwakePreservesBaselineInterface()
+        {
+            root = new GameObject("TestBaseline");
+            root.SetActive(false);
+            var controller = root.AddComponent<PrototypeController>();
+            JsonUtility.FromJsonOverwrite("{\"enableAlternateConversion\":false}", controller);
+            root.SetActive(true);
+            controller.TogglePause();
+            yield return null;
+            Assert.That(controller.Simulation.AlternateConversionEnabled, Is.False);
+            Assert.That(root.GetComponentsInChildren<Button>().Any(b => b.name == "ConversionMode"), Is.False);
+            controller.ToggleConversionMode();
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            controller.Simulation.AdvanceTicks(10);
+            Assert.That(controller.Simulation.Credits, Is.EqualTo(Economy.Scale));
+        }
+
+        [UnityTest]
+        public IEnumerator ConversionModeButtonSwitchesFreelyAndUpdatesRatesAndUpgradeEffect()
+        {
+            root = new GameObject("TestPrototype");
+            var controller = root.AddComponent<PrototypeController>();
+            controller.TogglePause();
+            yield return null;
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            Assert.That(FindText("ConversionModeDetails").text, Does.Contain("2 A"));
+            ClickButton("ConversionMode");
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Fast));
+            Assert.That(controller.Simulation.Ticks, Is.Zero);
+            Assert.That(controller.Simulation.Credits, Is.Zero);
+            Assert.That(controller.Simulation.LifetimeXp, Is.Zero);
+            Assert.That(FindText("ConversionModeDetails").text, Does.Contain("4 A"));
+            Assert.That(FindText("ConversionModeDetails").text, Does.Contain("1.5 B"));
+            var effects = root.GetComponentsInChildren<Text>().Select(t => t.text).ToArray();
+            Assert.That(effects.Any(t => t.Contains("+0.75 B")), Is.True);
+            Assert.That(effects.Any(t => t.Contains("2.25 / 3.00")), Is.True, "Fast Conversion must show input-limited actual/max B output.");
+            ClickButton("ConversionMode");
+            Assert.That(controller.Simulation.SelectedConversionMode, Is.EqualTo(ConversionMode.Standard));
+            Assert.That(FindText("ConversionModeDetails").text, Does.Contain("2 A"));
+        }
         private Text FindText(string name) => root.GetComponentsInChildren<Text>().Single(t => t.name == name);
 
         private void ClickButton(string name)

@@ -11,6 +11,8 @@ namespace Accumulator.Presentation
     /// <summary>Local prototype adapter. Frame time schedules explicit core ticks; it is not trusted server time.</summary>
     public sealed class PrototypeController : MonoBehaviour
     {
+        [SerializeField, Tooltip("Enable the 0.2 Standard/Fast Conversion experiment. Disable before Play for the 0.1 baseline.")]
+        private bool enableAlternateConversion = true;
         public Economy Simulation { get; private set; }
         public bool Paused { get; private set; }
         public int Speed { get; private set; } = 1;
@@ -21,6 +23,8 @@ namespace Accumulator.Presentation
         private readonly Text[] allocations = new Text[3], rates = new Text[3], upgradeLabels = new Text[3], upgradeEffects = new Text[3];
         private readonly Button[] plus = new Button[3], minus = new Button[3], buy = new Button[3];
         private Button pauseButton, expandCapacity;
+        private UnityEngine.UI.Button conversionModeButton;
+        private UnityEngine.UI.Text conversionModeDetails;
         private readonly Color ink = new Color(0.88f, 0.93f, 0.98f);
         private readonly Color muted = new Color(0.65f, 0.75f, 0.84f);
         private readonly Color accent = new Color(0.35f, 0.86f, 0.73f);
@@ -28,7 +32,7 @@ namespace Accumulator.Presentation
 
         private void Awake()
         {
-            Simulation = new Economy();
+            Simulation = new Economy(enableAlternateConversion);
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             BuildInterface();
             Refresh();
@@ -83,6 +87,14 @@ namespace Accumulator.Presentation
             Refresh();
         }
 
+        public void ToggleConversionMode()
+        {
+            var next = Simulation.SelectedConversionMode == ConversionMode.Standard ? ConversionMode.Fast : ConversionMode.Standard;
+            Feedback = Simulation.TrySetConversionMode(next, out string reason)
+                ? "Conversion mode changed. Switching is free." : reason;
+            Refresh();
+        }
+
         private static string Number(long raw) => (raw / (decimal)Economy.Scale).ToString("N2", CultureInfo.InvariantCulture);
         private static string PerSecond(long raw) => (raw * (decimal)Economy.TicksPerSecond / Economy.Scale).ToString("0.00", CultureInfo.InvariantCulture);
         private static string SignedRate(long raw) => (raw * (decimal)Economy.TicksPerSecond / Economy.Scale).ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture);
@@ -123,10 +135,19 @@ namespace Accumulator.Presentation
                 RefreshPrice(buy[i], hasCost, cost);
                 upgradeLabels[i].text = $"Efficiency\nLevel {Simulation.Level(i)}";
                 string effect = PresentationLabels.Effects[i];
+                if (i == Economy.Converter && Simulation.SelectedConversionMode == ConversionMode.Fast)
+                    effect = PresentationLabels.FastConversionUpgradeEffect;
                 if (i == 0) effect = A(effect);
                 else if (i == 1) effect = B(effect);
                 else effect = Credit(effect);
                 upgradeEffects[i].text = effect;
+            }
+            if (conversionModeButton != null)
+            {
+                bool fast = Simulation.SelectedConversionMode == ConversionMode.Fast;
+                conversionModeButton.GetComponentInChildren<Text>().text = "Mode: " + (fast ? PresentationLabels.FastConversion : PresentationLabels.StandardConversion);
+                decimal output = (fast ? 1.5m : 1m) * (1m + Simulation.Level(Economy.Converter) / 2m);
+                conversionModeDetails.text = "Per capacity /s: " + A(fast ? "4 A" : "2 A") + " -> " + B(output.ToString("0.##", CultureInfo.InvariantCulture) + " B") + "  |  Free switch";
             }
             rates[0].text = A($"A {PerSecond(flow.AProduced)} / {PerSecond(flow.MaxAProduced)}");
             rates[1].text = B($"B {PerSecond(flow.BProduced)} / {PerSecond(flow.MaxBProduced)}") + "\n" + A($"A input {PerSecond(flow.AConsumed)}/s") + State(1, flow.ConversionStarved, "A");
@@ -231,7 +252,8 @@ namespace Accumulator.Presentation
             for (int i = 0; i < 3; i++)
             {
                 int index = i;
-                var card = Node("Process" + i, content.transform, typeof(Image), typeof(VerticalLayoutGroup)); Height(card, 154);
+                bool showMode = i == Economy.Converter && Simulation.AlternateConversionEnabled;
+                var card = Node("Process" + i, content.transform, typeof(Image), typeof(VerticalLayoutGroup)); Height(card, showMode ? 204 : 154);
                 card.GetComponent<Image>().color = new Color(0.095f, 0.15f, 0.20f);
                 var layout = card.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(16, 16, 10, 10); layout.spacing = 6;
                 layout.childControlWidth = true; layout.childForceExpandWidth = true; layout.childControlHeight = true; layout.childForceExpandHeight = false;
@@ -244,6 +266,13 @@ namespace Accumulator.Presentation
                 allocations[i] = Label("Allocation", allocationControls.transform, "0", 24); allocations[i].alignment = TextAnchor.MiddleCenter; allocations[i].gameObject.AddComponent<LayoutElement>().preferredWidth = 38;
                 plus[i] = Button("Increase" + i, allocationControls.transform, "+", () => ChangeAllocation(index, 1), 56);
                 rates[i] = Label("Throughput", row.transform, "", 21); Flexible(rates[i], 500);
+                if (showMode)
+                {
+                    var modeRow = Row("ConversionModeRow", card.transform, 44);
+                    conversionModeButton = Button("ConversionMode", modeRow.transform, "", ToggleConversionMode, 220);
+                    conversionModeDetails = Label("ConversionModeDetails", modeRow.transform, "", 19);
+                    Flexible(conversionModeDetails);
+                }
                 var upgradeRow = Row("Upgrade" + i, card.transform, 64);
                 upgradeLabels[i] = Label("Description", upgradeRow.transform, "", 20); upgradeLabels[i].color = muted; upgradeLabels[i].gameObject.AddComponent<LayoutElement>().preferredWidth = 220;
                 buy[i] = Button("Purchase" + i, upgradeRow.transform, "", () => PurchaseUpgrade(index), 250);

@@ -2,13 +2,20 @@ using System;
 
 namespace Accumulator.Core
 {
+    /// <summary>Stable modes for the single Conversion process slot.</summary>
+    public enum ConversionMode
+    {
+        Standard = 0,
+        Fast = 1
+    }
+
     /// <summary>Deterministic fixed-point economy simulation, independent of Unity.</summary>
     public sealed class Economy
     {
         /// <summary>
-        /// Number of integer subunits in one displayed resource unit. Reachable tick rates,
-        /// resource amounts, and upgrade costs remain divisible at every integer half-step;
-        /// this scale avoids floating-point arithmetic without losing reachable precision.
+        /// Number of integer subunits in one displayed resource unit. Production uses
+        /// integer arithmetic throughout. Fractional subunit output is rounded down;
+        /// Fast Conversion can reach these fractions when input-starved.
         /// </summary>
         public const long Scale = 10000;
         public const int InitialCapacity = 6;
@@ -42,6 +49,32 @@ namespace Accumulator.Core
         public long LifetimeXp { get; private set; }
         public long Ticks { get; private set; }
         public int Capacity => _capacity;
+        public bool AlternateConversionEnabled { get; }
+        public ConversionMode SelectedConversionMode { get; private set; } = ConversionMode.Standard;
+
+        /// <summary>Creates a fresh baseline session, optionally enabling the Conversion experiment.</summary>
+        public Economy(bool alternateConversionEnabled = false)
+        {
+            AlternateConversionEnabled = alternateConversionEnabled;
+        }
+
+        /// <summary>Changes future Conversion throughput without spending or advancing simulation time.</summary>
+        public bool TrySetConversionMode(ConversionMode mode, out string reason)
+        {
+            if (mode != ConversionMode.Standard && mode != ConversionMode.Fast)
+            {
+                reason = "Unknown conversion mode.";
+                return false;
+            }
+            if (mode == ConversionMode.Fast && !AlternateConversionEnabled)
+            {
+                reason = "Alternate conversion is disabled for this session.";
+                return false;
+            }
+            SelectedConversionMode = mode;
+            reason = null;
+            return true;
+        }
 
         /// <summary>Returns the worker allocation for stable index 0, 1, or 2.</summary>
         public int Allocation(int index) => _allocations[ValidateIndex(index)];
@@ -157,7 +190,7 @@ namespace Accumulator.Core
             if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             for (var i = 0; i < count; i++)
             {
-                var flow = Calculate(A, B, _allocations, _levels);
+                var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode);
                 var nextTicks = checked(Ticks + 1);
                 // Calculate both balances first so overflow cannot partially commit a tick.
                 var nextCredits = checked(Credits + flow.Throughput.CreditsProduced);
@@ -173,28 +206,33 @@ namespace Accumulator.Core
         /// <summary>Calculates next-tick production and starvation without mutating state.</summary>
         public Throughput Preview()
         {
-            var flow = Calculate(A, B, _allocations, _levels);
+            var flow = Calculate(A, B, _allocations, _levels, SelectedConversionMode);
             return flow.Throughput;
         }
 
-        private static Flow Calculate(long a, long b, int[] allocation, int[] levels)
+        private static Flow Calculate(long a, long b, int[] allocation, int[] levels, ConversionMode mode)
         {
             checked
             {
                 var aProduced = (long)allocation[AProducer] * (2L + levels[AProducer]) * Scale / TicksPerSecond;
                 var aDemand = (long)allocation[Converter] * Scale / TicksPerSecond;
                 var availableA = a + aProduced;
-                var converted = Math.Min(aDemand, availableA / 2);
-                var aConsumed = converted * 2;
+                var aPerConversion = mode == ConversionMode.Fast ? 4 : 2;
+                var converted = Math.Min(aDemand, availableA / aPerConversion);
+                var aConsumed = converted * aPerConversion;
                 var nextA = availableA - aConsumed;
 
-                var bProduced = converted * (2L + levels[Converter]) / 2;
+                var bProduced = mode == ConversionMode.Fast
+                    ? converted * (2L + levels[Converter]) * 3 / 4
+                    : converted * (2L + levels[Converter]) / 2;
                 var bDemand = (long)allocation[Developer] * Scale / TicksPerSecond;
                 var availableB = b + bProduced;
                 var developed = Math.Min(bDemand, availableB);
                 var nextB = availableB - developed;
                 var creditsProduced = developed * (2L + levels[Developer]) / 2;
-                var maxBProduced = aDemand * (2L + levels[Converter]) / 2;
+                var maxBProduced = mode == ConversionMode.Fast
+                    ? aDemand * (2L + levels[Converter]) * 3 / 4
+                    : aDemand * (2L + levels[Converter]) / 2;
                 var maxXpProduced = bDemand * (2L + levels[Developer]) / 2;
 
                 var throughput = new Throughput(aProduced, aConsumed, bProduced, developed,

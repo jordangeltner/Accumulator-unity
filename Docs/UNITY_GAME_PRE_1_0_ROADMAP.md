@@ -1,9 +1,9 @@
 # Incremental strategy game — Prototype 0.1 handoff and pre-1.0 roadmap
 
-**Status:** Prototype 0.1 is being treated as the current stopping point.  
-**Last planning update:** October 24, 2026.  
-**Document type:** Design handoff and provisional roadmap, **not a verification of what is in the Unity repository**.  
-**Suggested repository location:** `Docs/ROADMAP_PRE_1_0.md`.
+**Status:** Prototypes 0.1 and 0.2 complete; current stage is 0.3 — Skill production experiment.
+
+**Last planning update:** October 29, 2026.
+**Document type:** Verified 0.1 handoff and provisional pre-1.0 roadmap.
 
 ## 1. Vision and non-negotiable direction
 
@@ -29,9 +29,9 @@
 - If input is insufficient, throughput is limited and resource balances never become negative. A fixed 0.1-second reference tick evaluates stages in order, allowing same-tick output to feed downstream stages. Exact fixed-point integer subunits are preferred in code.
 - Observed initial allocation patterns: **3/2/1** can build inventory while progressing; **2/2/2** can use A and B as fast as they are produced; after efficiency upgrades, **2/3/1** and **2/2/2** may become more favorable. These are examples, not proof of optimal strategies.
 
-### Latest intended 0.1 economy change — verify in repository before relying on it
+### Implemented 0.1 economy
 
-The final planning discussion proposed these mechanics, but the assistant has **not independently inspected the actual Unity project** to confirm implementation:
+Repository inspection and fresh Unity test runs confirmed these mechanics on October 29, 2026:
 
 - Distinguish **Credits** (spendable primary currency) from **Lifetime XP** (cumulative achievement, never spent).
 - Development generates **equal quantities of Credits and Lifetime XP**, using the existing output formula. Earlier `Progress` terminology should be updated where applicable.
@@ -51,17 +51,36 @@ The final planning discussion proposed these mechanics, but the assistant has **
 - Show **net rates**, clearly distinguish zero-net flow from blocked production, and use short explanations of bottlenecks such as “Need more A.” Preserve deeper formulas as optional detail rather than permanent clutter.
 - Upgrade choices changed effective allocation strategies in encouraging ways. **Long-term playability remains unproven**, and a minute of play was not enough to measure sustained engagement.
 
-### 0.1 exit/handoff checklist (not verified here)
+### 0.1 exit/handoff checklist — complete
 
-- [ ] Confirm which of the latest Credits/XP and capacity features were actually implemented.
-- [ ] Check Unity Play Mode loads, production continues, and allocation / purchase controls work.
-- [ ] Run tests for deterministic production, purchases, capacity constraints and invalid actions.
-- [ ] Confirm readability of costs, net production and bottlenecks.
-- [ ] Save working project state and commit/push to GitHub when ready.
+- [x] Confirm which of the latest Credits/XP and capacity features were actually implemented.
+- [x] Check Unity Play Mode loads, production continues, and allocation / purchase controls work.
+- [x] Run tests for deterministic production, purchases, capacity constraints and invalid actions.
+- [x] Confirm readability of costs, net production and bottlenecks.
+- [x] Save working project state and commit/push to GitHub when ready.
+
+Completion evidence: fresh runs passed 25/25 EditMode and 4/4 PlayMode tests;
+Unity reported no compilation failure or Console errors, with Prototype01 active.
+The user confirmed the checklist was complete, including human readability and
+the prior save/commit/push handoff. Commit/push was not repeated in this session.
+Unity logged a warning about the previously repaired Visual Studio package cache
+file; package operations may replace that local repair. Long-term balance and
+engagement remain questions for subsequent experiments.
 
 ## 3. Suggested pre-1.0 milestones — hypotheses, not commitments
 
-### 0.2 — Economic depth experiment
+### 0.2 — Economic depth experiment — complete
+
+**Implementation update (October 29):** The user has manually explored 0.1
+investment strategies. Standard/Fast Conversion is now selectable behind an
+Inspector experiment toggle; Standard is the starting mode. Fast uses twice the A
+for 50% more B per converter, with the existing upgrade multiplier. See
+[Prototype02.md](Prototype02.md) for rules and comparison instructions. The
+user's five-minute playtest found both modes useful and the strategies more
+complex, dynamic and flexible. This satisfies the initial experiment; long-term
+mode balance remains open. With divisible allocations, Fast gains a sustainable
+efficiency advantage as A production is upgraded; integer allocation and inventory
+buffers can still favor Standard situationally.
 
 **Question:** Can players discover multiple viable strategies, or does the economy settle into repetitive arithmetic?
 
@@ -145,7 +164,7 @@ The final planning discussion proposed these mechanics, but the assistant has **
 
 ## 5. Open questions for the next session
 
-1. Has the Credits-only purchase model, lifetime XP, and capacity-to-10 system been implemented and tested in the repo, or is it still a pending design iteration?
+1. Which investment and allocation strategies are worth comparing in the 0.2 experiment, now that the Credits/XP and capacity baseline is implemented and tested?
 2. Are playtesters optimizing **lifetime XP**, near-term spendable Credits, or something else—and what makes that objective compelling?
 3. Do alternate operating modes create fundamentally different strategies or merely extra optimization bookkeeping?
 4. What is the simplest repeatable tactical challenge that feels skillful independent of rewards?
@@ -155,4 +174,4 @@ The final planning discussion proposed these mechanics, but the assistant has **
 
 ## 6. Suggested first task when resuming
 
-> Inspect the current Unity repo, tests, and active playable scene. Compare the implementation against `Docs/ROADMAP_PRE_1_0.md`, especially Credits-only efficiency purchases, Credits+XP generation, and capacity expansion. Report verified status and any discrepancies without modifying files. Then propose the smallest controlled 0.2 experiment to test whether expandable capacity and one alternate process mode improve strategic choice over the 0.1 baseline. Do not add features until the experiment and success criteria are approved.
+> Playtest the selectable Standard/Fast Conversion experiment described in `Docs/Prototype02.md`. Compare identical starts at 5/10/15 minutes; evaluate strategic trade-offs and human comprehension, not output increases alone. The 0.1 repository inspection and baseline verification are complete.

@@ -1,5 +1,8 @@
 # Prototype 0.1 — Credits / lifetime XP experiment
 
+This document records the Standard-mode baseline. The selectable Conversion
+experiment and its baseline toggle are described in [Prototype02.md](Prototype02.md).
+
 ## Run
 
 Open `Assets/Scenes/Prototype01.unity` and enter Play Mode. The management UI is
@@ -108,10 +111,11 @@ preview, and atomic overflow. PlayMode checks exercise actual UI raycasts,
 manual purchases, capacity allocation, XP milestones, starvation, pause, and
 simulation advancement.
 
-Latest executed results: 25/25 EditMode cases and 4/4 PlayMode cases passed.
-A later compiler error in the installed Visual Studio integration package was
-deferred at the user's request; see [REPAIR_NOTES.md](REPAIR_NOTES.md) for the
-exact state and unverified cache-restoration attempt. Final clean compilation
-has not been verified after that error. Human playtesting is still needed for
+The 0.1 baseline passed 25/25 EditMode cases and 4/4 PlayMode cases.
+Fresh October 29 checks confirmed compilation now succeeds after the local
+Visual Studio package repair recorded in [REPAIR_NOTES.md](REPAIR_NOTES.md).
+Unity warned that package operations may replace the repaired cache file.
+The subsequent 0.2 experiment passed 32/32 EditMode and 6/6 PlayMode cases;
+see [Prototype02.md](Prototype02.md). Human playtesting is still needed for
 investment balance, enjoyable reallocation frequency, physical input comfort,
 and window sizes beyond the verified desktop view.
