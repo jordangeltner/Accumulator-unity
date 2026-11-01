@@ -6,7 +6,7 @@ namespace Accumulator.Presentation
         public const string ResourceA = "Resource A";
         public const string ResourceB = "Resource B";
         public const string Credits = "Credits";
-        public const string LifetimeXp = "Lifetime XP";
+        public const string LifetimeXp = "Run XP";
         public const string StandardConversion = "Standard";
         public const string FastConversion = "Fast";
         public const string FastConversionUpgradeEffect = "+0.75 B / capacity /s";

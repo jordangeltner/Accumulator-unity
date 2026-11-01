@@ -1,6 +1,6 @@
 # Incremental strategy game — Speedrun roadmap to 1.0
 
-**Status:** Initial 0.1–0.4 experiments accepted in their revised form; the initial 0.5 progression prototype is playable. Speedrunning is the approved primary direction. Next implementation milestone: 0.6, the complete local run loop.
+**Status:** Initial 0.1–0.4 experiments accepted in their revised form; the initial 0.5 progression prototype is playable. Speedrunning is the approved primary direction. The 0.6 local run loop and revised UI are accepted by the user, with automated checks passing. Next implementation milestone: 0.7. Sustained repeat-run engagement remains unverified.
 
 **Last planning update:** November 1, 2026.
 **Document type:** Prototype evidence and approved release plan. Future milestones describe planned work, not implemented features. Approval of this roadmap does not establish that engagement or competitive integrity has been verified.
@@ -172,12 +172,25 @@ has already been demonstrated. Earlier prototype evidence remains above.
 
 ### 0.6 — Complete local speedrun loop
 
+**Implementation update (November 1):** Main menu/dialog, short sectioned guide, basic
+saved options/statistics, 2,000 XP Standard/Practice runs, immediate start, finish,
+results/retry, compatible local PB storage and bounded event/timeline capture are
+implemented. The lead ran 90/90 EditMode and 26/26 PlayMode tests successfully and
+inspected the live UI at 1280x720. The target is still provisional; human repeat-run
+engagement and a standalone release build have not been verified. Rules,
+limitations and playtest instructions: [Prototype06.md](Prototype06.md).
+
+**Acceptance (November 1):** After reviewing the initial flow and requesting the
+UI revisions below, the user accepted 0.6 and authorized commit/push. This accepts
+the implemented slice without claiming measured retention or final target balance.
+
 - Define one target-XP objective and a versioned ruleset with identical starts, fixed comparable speed, permitted inputs, XP/unlock state and no inherited account power. The earlier 2,000 XP suggestion is provisional until a short playtest establishes feasibility.
-- Implement countdown/start, elapsed time, automatic finish, a basic results screen and quick retry. Define timer precision, action ordering at the finish boundary, pause, background/focus loss, abort/restart and interrupted-run behavior before comparing times. Countdown must not generate progress; completion must freeze the result exactly once.
+- Implement immediate start, elapsed time, automatic finish, a basic results screen and quick retry. Define timer precision, action ordering at the finish boundary, Options, background/focus loss, abort/restart and interrupted-run behavior before comparing times. Begin Run and retry have no delay; completion must freeze the result exactly once. The initial countdown proposal was removed after user playtesting feedback.
 - Save local PBs by compatible run type/ruleset, retain historical records and preserve preferences across restarts. Separate practice results and altered rules from comparable PBs. These remain local untrusted records; ranked server submissions are unavailable until 0.10.
 - Record timestamped upgrade purchases, unlocks, allocations, mode changes and timing outcomes, plus bounded timeline samples, so later analysis does not depend on reconstructing missing data. Define attempt, normal-hit, critical, miss and skipped-opportunity semantics. Do not build the full charts yet.
-- Add a landing/main menu before simulation begins. **New Run** opens a dialog showing the available objective, options and rules before confirmation. Only supported choices are selectable; critical presets arrive in 0.7 and additional targets in 0.8.
-- Put **How to Play** directly beneath New Run. The initial guide is one paragraph explaining the goal, economy, upgrades and basic timing controls; no guided tutorial is required yet.
+- Add a landing/main menu before simulation begins. **New Run** opens a concise dialog with a Standard/Practice dropdown and a **Run Options** button opening a placeholder configuration dialog. Only supported choices are selectable; critical presets arrive in 0.7 and additional targets in 0.8.
+- Put **How to Play** directly beneath New Run. Keep the initial guide short, with category headings and bullets for the goal, economy, upgrades and timing; no guided tutorial is required yet. This supersedes the initial paragraph-only presentation after user feedback.
+- Keep Options, Details, Restart and Main Menu in a fixed bottom-right gameplay dock. Remove the prototype Pause and 1x/5x/20x buttons. Back to Run from Options resumes an interrupted attempt without restoring PB eligibility.
 - Provide top-level **Options** for game configuration and a **Statistics** entry with basic PB information. Save the basic supported audio/display/control preferences; fuller keyboard remapping comes in 0.7, aggregate history/reports in 0.8 and live leaderboards in 0.10. Ordinary presentation settings must not silently change competitive conditions.
 - **Exit evidence:** Repeat attempts have comparable starts and finish rules; players can finish, view a result, retry and recover PBs/options after restarting. Deterministic and Unity integration tests cover boundaries and lifecycle behavior. No claim of trusted public results.
 
@@ -203,7 +216,7 @@ has already been demonstrated. Earlier prototype evidence remains above.
 - This minor release is entirely for presentation, usability and onboarding. Gameplay rules, event recording and result calculations must already exist. Do not add gameplay or backend features to this milestone.
 - Overhaul the full flow: landing page, New Run dialog, Options, How to Play, Statistics/leaderboard layouts, gameplay controls, timing feedback, results and graphs. Reduce pointer travel and clutter; make upgrades, bottlenecks and run status legible.
 - Organize Options around audio levels/devices, graphics/display, keyboard bindings, supported input/output configuration and accessibility/feedback. Make settings accessible during play under the run's pause rules; persist supported preferences and handle unavailable devices/settings gracefully.
-- Replace the initial paragraph-only guide with a skippable, replayable tutorial using progressive disclosure. Introduce concepts when relevant, highlight/circle controls and evaluate short animations where useful. Refine the exact format through playtesting rather than requiring an animation for every step.
+- Replace the initial text guide with a skippable, replayable tutorial using progressive disclosure. Introduce concepts when relevant, highlight/circle controls and evaluate short animations where useful. Refine the exact format through playtesting rather than requiring an animation for every step.
 - Validate readable scaling, non-color-only feedback, clear keyboard focus, input responsiveness and supported Windows resolutions. Use process-based visuals and restrained sound; no concept-art or character-model design.
 - **Exit evidence:** The entire run workflow is clear and comfortable, including first use, repeat runs and reports. Tutorial help supports discovery without obstructing experienced players.
 
@@ -232,8 +245,8 @@ has already been demonstrated. Earlier prototype evidence remains above.
 
 ### Main menu and tutorial flow
 
-1. **New Run:** Open a dialog for available target/run type, critical configuration (from 0.7) and practice/competitive options when supported. Show rules and eligibility before confirmation, then start the countdown.
-2. **How to Play:** Immediately beneath New Run. One paragraph in 0.6; a guided, progressive, skippable and replayable tutorial in 0.9.
+1. **New Run:** A concise dialog with a mode dropdown and a separate Run Options configuration dialog. Start immediately when Begin Run is selected. Critical configuration arrives from 0.7 and additional targets from 0.8; ranked options only appear when supported.
+2. **How to Play:** Immediately beneath New Run. Short sections and bullets in 0.6; a guided, progressive, skippable and replayable tutorial in 0.9.
 3. **Options:** Audio, graphics/display, keyboard/input and supported input/output/accessibility settings. Preferences survive sessions; competitive restrictions are explicit.
 4. **Statistics:** Personal PBs first, then history/aggregate statistics and detailed run reports in 0.8, plus live global leaderboards in 0.10.
 
@@ -263,7 +276,7 @@ presented as functioning ranked, device or configuration features.
 
 ## 6. Suggested first task when resuming
 
-> Build 0.6 after defining the first run target, lifecycle/timing rules and small shared contracts for run configuration, immutable results, event capture and local record storage. Use at most two workers plus the lead, with non-overlapping file ownership. Keep the Unity Editor under one owner's control. Integrate the menu, basic options/guide, comparable run, result, PB persistence and quick-retry flow, then run final simulation/Unity checks and playtest repeated attempts. Do not pull later critical customization, charting, full tutorial, backend or leaderboard implementation into 0.6.
+> Use accepted 0.6 as the baseline for planning the bounded 0.7 execution slice: one additional timing opportunity, controls/remapping, a small upgrade set and the critical-range experiment. Keep collecting target-duration, Options/focus-policy and repeat-run feedback using Prototype06.md; the 2,000 XP target remains provisional. Preserve comparable rulesets when changing balance, and keep later charting, the full tutorial and global leaderboard implementation in their assigned milestones.
 
 ## 7. Post-1.0 ideas — not scheduled or approved for implementation
 

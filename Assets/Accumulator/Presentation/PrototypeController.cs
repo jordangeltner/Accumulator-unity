@@ -9,28 +9,27 @@ using UnityEngine.UI;
 namespace Accumulator.Presentation
 {
     /// <summary>Local prototype adapter. Frame time schedules explicit core ticks; it is not trusted server time.</summary>
-    public sealed class PrototypeController : MonoBehaviour
+    public sealed partial class PrototypeController : MonoBehaviour
     {
         [SerializeField, Tooltip("Enable the 0.2 Standard/Fast Conversion experiment. Disable before Play for the 0.1 baseline.")]
         private bool enableAlternateConversion = true;
         [SerializeField, Tooltip("Enable the 0.3 optional timing game in the Production slot.")]
         private bool enableTimingProduction = true;
-        public Economy Simulation { get; private set; }
-        public bool Paused { get; private set; }
-        public int Speed { get; private set; } = 1;
+        public RunSession Session { get; private set; }
+        public RunSnapshot Simulation => Session?.Snapshot;
+        public bool Paused => Session?.State == RunState.Paused;
+        public int Speed => Session?.Speed ?? 1;
         public string Feedback { get; private set; } = "";
         public bool ShowDetails { get; private set; }
-        private double pendingSeconds;
-        private double pendingTimingMilliseconds;
         private Font font;
-        private Text balances, netRates, capacity, feedbackText, clock;
+        private Text balances, netRates, capacity, feedbackText;
         private UnityEngine.UI.Text nextUnlock;
         private readonly Text[] allocations = new Text[3], rates = new Text[3], upgradeLabels = new Text[3], upgradeEffects = new Text[3];
         private readonly Button[] plus = new Button[3], minus = new Button[3], buy = new Button[3];
-        private Button pauseButton, expandCapacity, detailsButton;
+        private Button expandCapacity, detailsButton;
         private UnityEngine.UI.Button conversionModeButton;
         private UnityEngine.UI.Text conversionModeDetails;
-        private UnityEngine.UI.Button productionModeButton, timingBarButton, speed5Button, speed20Button;
+        private UnityEngine.UI.Button productionModeButton, timingBarButton;
         private UnityEngine.UI.Text productionModeDetails, timingStatus;
         private RectTransform timingMarker;
         private GameObject timingPanel;
@@ -44,99 +43,64 @@ namespace Accumulator.Presentation
 
         private void Awake()
         {
-            Simulation = new Economy(enableAlternateConversion, enableTimingProduction);
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            InitializeLocalProfile();
             BuildInterface();
+            BuildRunFlowInterface();
             Refresh();
         }
 
         private void Update()
         {
-            if (!Paused)
-            {
-                try
-                {
-                    if (Simulation.SelectedProductionMode == ProductionMode.Timing)
-                    {
-                        pendingTimingMilliseconds += Time.unscaledDeltaTime * 1000d;
-                        int milliseconds = (int)Math.Min(int.MaxValue, Math.Floor(pendingTimingMilliseconds));
-                        Simulation.AdvanceTimingMilliseconds(milliseconds);
-                        pendingTimingMilliseconds -= milliseconds;
-                    }
-                    pendingSeconds += Time.unscaledDeltaTime * Speed;
-                    // Keep fractional elapsed time and backlog; never use device-clock/offline time.
-                    int ticks = (int)Math.Min(500, Math.Floor((pendingSeconds + 1e-9) * Economy.TicksPerSecond));
-                    if (ticks > 0)
-                    {
-                        Simulation.AdvanceTicks(ticks);
-                        pendingSeconds -= ticks / (double)Economy.TicksPerSecond;
-                    }
-                }
-                catch (OverflowException)
-                {
-                    Paused = true;
-                    Feedback = "Simulation paused: numeric storage limit reached.";
-                }
-            }
-            Refresh();
+            UpdateRunFlow();
         }
 
         public void ChangeAllocation(int index, int delta)
         {
-            if (index < 0 || index > 2) return;
-            Feedback = Simulation.TrySetAllocation(index, Simulation.Allocation(index) + delta, out string reason)
+            if (Session == null || index < 0 || index > 2) return;
+            Feedback = Session.TrySetAllocation(index, Simulation.Allocation(index) + delta, out string reason)
                 ? "" : reason;
             Refresh();
         }
 
         public void PurchaseUpgrade(int index)
         {
-            Feedback = Simulation.TryPurchase(index, out string reason)
+            if (Session == null) return;
+            Feedback = Session.TryPurchase(index, out string reason)
                 ? "" : reason;
-            Refresh();
-        }
-
-        public void TogglePause() { Paused = !Paused; Refresh(); }
-        public void SetSpeed(int speed)
-        {
-            if (Simulation.SelectedProductionMode == ProductionMode.Timing && speed != 1)
-                Feedback = "Timing production runs at 1x.";
-            else if (speed == 1 || speed == 5 || speed == 20) Speed = speed;
             Refresh();
         }
 
         public void PurchaseCapacity()
         {
-            Feedback = Simulation.TryExpandCapacity(out string reason) ? "" : reason;
+            if (Session == null) return;
+            Feedback = Session.TryExpandCapacity(out string reason) ? "" : reason;
             Refresh();
         }
 
         public void ToggleConversionMode()
         {
+            if (Session == null) return;
             var next = Simulation.SelectedConversionMode == ConversionMode.Standard ? ConversionMode.Fast : ConversionMode.Standard;
-            Feedback = Simulation.TrySetConversionMode(next, out string reason)
+            Feedback = Session.TrySetConversionMode(next, out string reason)
                 ? "" : reason;
             Refresh();
         }
 
         public void ToggleProductionMode()
         {
+            if (Session == null) return;
             var next = Simulation.SelectedProductionMode == ProductionMode.Passive ? ProductionMode.Timing : ProductionMode.Passive;
-            if (Simulation.TrySetProductionMode(next, out string reason))
-            {
-                if (next == ProductionMode.Timing) Speed = 1;
-                Feedback = "";
-            }
-            else Feedback = reason;
+            Feedback = Session.TrySetProductionMode(next, out string reason) ? "" : reason;
             Refresh();
         }
 
         public void StrikeTiming()
         {
-            if (Paused) { Feedback = "Resume to play the timing game."; Refresh(); return; }
+            if (Session == null) return;
             try
             {
-                if (Simulation.TryStrikeTiming(out bool hit, out long reward, out string reason))
+                if (Session.TryStrikeTiming(out bool hit, out long reward, out string reason))
                 {
                     timingResult = hit
                         ? (Simulation.LastTimingResult == TimingResult.Critical ? "CRITICAL! +" : "SUCCESS! +") + Number(reward) + " A"
@@ -147,13 +111,19 @@ namespace Accumulator.Presentation
             }
             catch (OverflowException)
             {
-                Paused = true;
+                Session.Pause("Numeric storage limit reached; practice only.");
                 Feedback = "Simulation paused: numeric storage limit reached.";
             }
             Refresh();
         }
 
-        public void ToggleDetails() { ShowDetails = !ShowDetails; Refresh(); }
+        public void ToggleDetails()
+        {
+            ShowDetails = !ShowDetails;
+            profile.Options.showDetails = ShowDetails;
+            SaveLocalProfile();
+            Refresh();
+        }
 
         private static string Number(long raw) => (raw / (decimal)Economy.Scale).ToString("N2", CultureInfo.InvariantCulture);
         private static string PerSecond(long raw) => (raw * (decimal)Economy.TicksPerSecond / Economy.Scale).ToString("0.00", CultureInfo.InvariantCulture);
@@ -165,7 +135,7 @@ namespace Accumulator.Presentation
 
         private void RefreshPrice(Button button, bool hasCost, long cost, string prefix = "", string unavailable = "Unavailable")
         {
-            button.interactable = hasCost && Simulation.Credits >= cost;
+            button.interactable = Session.State == RunState.Running && hasCost && Simulation.Credits >= cost;
             string caption = hasCost ? prefix + (cost / Economy.Scale).ToString("N0", CultureInfo.InvariantCulture) + " Credits" : unavailable;
             var label = button.GetComponentInChildren<Text>();
             label.text = button.interactable ? Credit(caption) : caption;
@@ -176,7 +146,9 @@ namespace Accumulator.Presentation
 
         public void Refresh()
         {
-            if (balances == null) return;
+            RefreshRunFlow();
+            if (balances == null || Simulation == null) return;
+            bool running = Session.State == RunState.Running;
             var flow = Simulation.Preview();
             int used = Simulation.Allocation(0) + Simulation.Allocation(1) + Simulation.Allocation(2);
             balances.text = A($"{PresentationLabels.ResourceA}   {Number(Simulation.A)}") + "     " + B($"{PresentationLabels.ResourceB}   {Number(Simulation.B)}") + "     " + Credit($"{PresentationLabels.Credits}   {Number(Simulation.Credits)}") + "     " + Xp($"{PresentationLabels.LifetimeXp}   {Number(Simulation.LifetimeXp)}");
@@ -185,13 +157,12 @@ namespace Accumulator.Presentation
             RefreshNextUnlock();
             bool hasExpansion = Simulation.TryGetExpansionCost(out long expansionCost);
             RefreshPrice(expandCapacity, hasExpansion, expansionCost, "+1  |  ", "Max capacity");
-            clock.text = $"{Simulation.Ticks / 10m:0.0}s  |  {Speed}x";
             detailsButton.GetComponentInChildren<Text>().text = ShowDetails ? "Less detail" : "Details";
             for (int i = 0; i < 3; i++)
             {
                 allocations[i].text = Simulation.Allocation(i).ToString();
-                plus[i].interactable = used < Simulation.Capacity;
-                minus[i].interactable = Simulation.Allocation(i) > 0;
+                plus[i].interactable = running && used < Simulation.Capacity;
+                minus[i].interactable = running && Simulation.Allocation(i) > 0;
                 bool hasCost = Simulation.TryGetCost(i, out long cost);
                 RefreshPrice(buy[i], hasCost, cost);
                 upgradeLabels[i].text = $"Efficiency {Simulation.Level(i)}";
@@ -213,7 +184,7 @@ namespace Accumulator.Presentation
                 conversionModeRow.SetActive(unlocked);
                 conversionCardHeight.minHeight = conversionCardHeight.preferredHeight = unlocked ? 192 : 142;
                 conversionModeDetails.gameObject.SetActive(ShowDetails);
-                conversionModeButton.interactable = Simulation.FastConversionUnlocked;
+                conversionModeButton.interactable = running && Simulation.FastConversionUnlocked;
                 conversionModeButton.GetComponentInChildren<Text>().text = "Mode: " + (fast ? PresentationLabels.FastConversion : PresentationLabels.StandardConversion);
                 decimal output = (fast ? 1.5m : 1m) * (1m + Simulation.Level(Economy.Converter) / 2m);
                 conversionModeDetails.text = A(fast ? "4 A" : "2 A") + " -> " + B(output.ToString("0.##", CultureInfo.InvariantCulture) + " B") + " / capacity /s";
@@ -226,9 +197,9 @@ namespace Accumulator.Presentation
             rates[2].text = ShowDetails
                 ? Credit("Credits") + " + " + Xp("XP") + $" {PerSecond(flow.CreditsProduced)} / {PerSecond(flow.MaxCreditsProduced)}\n" + B($"B input {PerSecond(flow.BConsumed)}/s") + State(2, flow.DevelopmentStarved, "B")
                 : $"{PerSecond(flow.CreditsProduced)} " + Credit("Credits") + " + " + Xp("XP") + "/s" + State(2, flow.DevelopmentStarved, "B");
-            pauseButton.GetComponentInChildren<Text>().text = Paused ? "Resume" : "Pause";
             feedbackText.text = Feedback;
             feedbackText.gameObject.SetActive(Feedback.Length > 0);
+            KeepSelectedControlVisible();
         }
 
         private void RefreshNextUnlock()
@@ -255,12 +226,11 @@ namespace Accumulator.Presentation
         private void RefreshTiming()
         {
             bool timing = Simulation.SelectedProductionMode == ProductionMode.Timing;
-            speed5Button.interactable = speed20Button.interactable = !timing;
             if (productionModeButton == null) return;
             bool unlocked = Simulation.TimingProductionUnlocked;
             productionModeRow.SetActive(unlocked);
             productionModeDetails.gameObject.SetActive(ShowDetails);
-            productionModeButton.interactable = Simulation.TimingProductionUnlocked;
+            productionModeButton.interactable = Session.State == RunState.Running && Simulation.TimingProductionUnlocked;
             productionModeButton.GetComponentInChildren<Text>().text = "Mode: " + (timing ? PresentationLabels.TimingProduction : PresentationLabels.PassiveProduction);
             productionModeDetails.text = timing ? "Manual A production  |  1x" : "Automatic A production";
             if (timingPanel.activeSelf != timing) timingPanel.SetActive(timing);
@@ -272,7 +242,7 @@ namespace Accumulator.Presentation
             timingMarker.anchorMax = new Vector2(position, 1);
             timingMarker.anchoredPosition = Vector2.zero;
             bool hasWorkers = Simulation.Allocation(Economy.AProducer) > 0;
-            timingBarButton.interactable = !Paused && hasWorkers && Simulation.TimingAttemptAvailable;
+            timingBarButton.interactable = Session.State == RunState.Running && hasWorkers && Simulation.TimingAttemptAvailable;
             decimal reward = Simulation.Allocation(Economy.AProducer) * (2m + Simulation.Level(Economy.AProducer)) * 2m;
             string state = Paused ? "Paused" : !hasWorkers ? "Assign Production capacity" : Simulation.TimingAttemptAvailable ? "Ready" : "Next sweep…";
             timingStatus.text = $"{state}  |  Success: {reward:0.##} A  |  Critical: {reward * 1.5m:0.##} A  |  Hits {Simulation.TimingHits}/{Simulation.TimingAttempts}";
@@ -344,14 +314,16 @@ namespace Accumulator.Presentation
         private void BuildInterface()
         {
             var canvas = Node("PrototypeCanvas", transform, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            uiCanvas = canvas.transform;
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvas.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1500, 1000); scaler.matchWidthOrHeight = 1;
             var backdrop = Node("Background", canvas.transform, typeof(Image));
+            gameplayRoot = backdrop;
             Stretch(backdrop.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             backdrop.GetComponent<Image>().color = new Color(0.035f, 0.065f, 0.095f);
             var scroll = Node("ManagementScroll", backdrop.transform, typeof(ScrollRect));
-            Stretch(scroll.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, new Vector2(28, 18), new Vector2(-28, -18));
+            Stretch(scroll.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, new Vector2(28, 90), new Vector2(-28, -18));
             var viewport = Node("Viewport", scroll.transform, typeof(Image), typeof(RectMask2D));
             viewport.GetComponent<Image>().color = Color.clear;
             Stretch(viewport.GetComponent<RectTransform>(), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -361,6 +333,7 @@ namespace Accumulator.Presentation
             content.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             var scrolling = scroll.GetComponent<ScrollRect>(); scrolling.viewport = viewport.GetComponent<RectTransform>(); scrolling.content = rect; scrolling.horizontal = false; scrolling.movementType = ScrollRect.MovementType.Clamped;
             var title = Label("Title", content.transform, "ACCUMULATOR", 30); title.color = accent; Height(title.gameObject, 44);
+            runHeading = Label("RunHeading", content.transform, "", 24); runHeading.color = accent; Height(runHeading.gameObject, 38);
             balances = Label("Balances", content.transform, "", 25); Height(balances.gameObject, 48);
             balances.resizeTextForBestFit = true; balances.resizeTextMinSize = 18; balances.resizeTextMaxSize = 25;
             netRates = Label("NetRates", content.transform, "", 20); netRates.color = accent; Height(netRates.gameObject, 32);
@@ -372,8 +345,8 @@ namespace Accumulator.Presentation
             for (int i = 0; i < 3; i++)
             {
                 int index = i;
-                bool showMode = i == Economy.Converter && Simulation.AlternateConversionEnabled;
-                bool showTiming = i == Economy.AProducer && Simulation.TimingProductionEnabled;
+                bool showMode = i == Economy.Converter && enableAlternateConversion;
+                bool showTiming = i == Economy.AProducer && enableTimingProduction;
                 var card = Node("Process" + i, content.transform, typeof(Image), typeof(VerticalLayoutGroup)); Height(card, 142);
                 if (showTiming) productionCardHeight = card.GetComponent<LayoutElement>();
                 if (showMode) conversionCardHeight = card.GetComponent<LayoutElement>();
@@ -413,14 +386,21 @@ namespace Accumulator.Presentation
                 upgradeEffects[i] = Label("UpgradeEffect" + i, upgradeRow.transform, "", 21); Flexible(upgradeEffects[i], 500);
             }
             feedbackText = Label("Feedback", content.transform, "", 20); feedbackText.color = warning; Height(feedbackText.gameObject, 36);
-            var controls = Row("TestControls", content.transform, 44);
-            pauseButton = Button("Pause", controls.transform, "Pause", TogglePause);
-            Button("Speed1", controls.transform, "1x", () => SetSpeed(1), 70);
-            speed5Button = Button("Speed5", controls.transform, "5x", () => SetSpeed(5), 70);
-            speed20Button = Button("Speed20", controls.transform, "20x", () => SetSpeed(20), 70);
-            detailsButton = Button("Details", controls.transform, "Details", ToggleDetails, 140);
-            clock = Label("Clock", controls.transform, "", 19); Flexible(clock);
-            var note = Label("LocalOnly", content.transform, "Not saved", 18); note.color = muted; Height(note.gameObject, 30);
+            var toolbar = Row("GameplayToolbar", backdrop.transform, 52, true);
+            var toolbarRect = toolbar.GetComponent<RectTransform>();
+            toolbarRect.anchorMin = toolbarRect.anchorMax = new Vector2(1, 0);
+            toolbarRect.pivot = new Vector2(1, 0);
+            toolbarRect.sizeDelta = new Vector2(680, 52);
+            toolbarRect.anchoredPosition = new Vector2(-28, 18);
+            var toolbarLayout = toolbar.GetComponent<HorizontalLayoutGroup>();
+            toolbarLayout.padding = new RectOffset(8, 8, 5, 5);
+            toolbarLayout.spacing = 10;
+            Button("GameOptions", toolbar.transform, "Options", OpenOptions, 160);
+            detailsButton = Button("Details", toolbar.transform, "Details", ToggleDetails, 140);
+            Button("RestartRun", toolbar.transform, "Restart", RestartRun, 150);
+            Button("ReturnToMenu", toolbar.transform, "Main Menu", ReturnToMainMenu, 180);
+            runStatus = Label("RunStatus", content.transform, "", 19); runStatus.color = warning; Height(runStatus.gameObject, 32);
+            var note = Label("LocalOnly", content.transform, "PBs saved locally. Online rankings arrive in a later release.", 18); note.color = muted; Height(note.gameObject, 30);
             var eventSystem = FindAnyObjectByType<EventSystem>();
             if (eventSystem == null)
                 eventSystem = Node("EventSystem", transform, typeof(EventSystem), typeof(InputSystemUIInputModule)).GetComponent<EventSystem>();
