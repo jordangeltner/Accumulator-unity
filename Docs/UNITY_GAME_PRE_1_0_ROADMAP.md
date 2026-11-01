@@ -1,19 +1,19 @@
-# Incremental strategy game — Branching pre-1.0 roadmap
+# Incremental strategy game — Speedrun roadmap to 1.0
 
-**Status:** Initial 0.1–0.4 experiments accepted in their revised form; 0.5 progression prototype is playable. Next planning gate: choose a primary speedrun or active/idle management direction.
+**Status:** Initial 0.1–0.4 experiments accepted in their revised form; the initial 0.5 progression prototype is playable. Speedrunning is the approved primary direction. Next implementation milestone: 0.6, the complete local run loop.
 
-**Last planning update:** October 29, 2026.
-**Document type:** Prototype evidence and provisional branching roadmap. Future milestones describe proposed work, not implemented features.
+**Last planning update:** November 1, 2026.
+**Document type:** Prototype evidence and approved release plan. Future milestones describe planned work, not implemented features. Approval of this roadmap does not establish that engagement or competitive integrity has been verified.
 
-## 1. Shared foundation and open product direction
+## 1. Approved product direction and foundation
 
-- **Shared gameplay ingredients:** A deterministic economy with production bottlenecks, allocation, upgrade sequencing and manual timing. The primary appeal is still open: optimizing repeatable timed runs, or developing an economy through active and idle periods.
-- **Active play:** The prototype integrates timing as an alternate production mode. Its role differs by branch: execution mastery can be central to speedrunning; timing remains an optional complement to passive progress in management play. No artificial session attempt scarcity while validating either loop.
-- **Progression:** The original plan favored persistent growth without prestige. That remains the management candidate. The speedrun candidate needs isolated, repeatable run state; restarting a run must be distinguished from resetting a persistent account. Run XP, account XP and any carryover rules are design decisions before branch implementation.
+- **Primary appeal:** Reach defined XP targets faster through production bottlenecks, allocation, upgrade sequencing and manual timing. Repeatable runs, execution mastery and route optimization replace continuing active/idle management as the primary release hypothesis.
+- **Active play:** Timing production competes for attention with economic decisions. Expand this carefully so both routing and execution matter; do not impose artificial attempt scarcity.
+- **Progression:** Each comparable run starts from the same rules-defined economy, XP, unlocks and upgrade state. XP is cumulative within a run and is never spent. Existing `LifetimeXp` terminology describes the prototype session; it must not silently become inherited account power. PBs, history and preferences persist separately from run state. Restarting a run must not reset those records.
 - **Target:** Windows-first Unity 6/C# game, potentially released on Steam; preserve a path toward macOS, iOS, and Android.
-- **Architecture/authority:** Keep deterministic C# simulation separate from Unity, portable to a server and free of unnecessary dependencies. Eventual account progression, elapsed time and rewards must be authoritative, with durable cross-platform identity. Which branch wins changes the first end-to-end proof; it does not make the present local prototype trusted or persistent.
-- **Business direction:** Either branch may eventually monetize. Premium access, paid content, cosmetics and suitable convenience features are hypotheses, not a chosen model or evidence of demand. Evaluate them against the selected loop before implementation; monetization work still requires explicit approval.
-- **Presentation/identity:** A theme, customizable economic environments, a humanoid avatar and a separate tactical scene remain candidates. Neither branch requires an avatar or separate scene merely to satisfy an inherited milestone.
+- **Architecture/authority:** Keep deterministic C# simulation separate from Unity, portable to a server and free of unnecessary dependencies. Progression, economy and elapsed time for public competitive results must be authoritative, with durable cross-platform identity. Early local records are untrusted prototype records, not leaderboard-eligible results. Prove timing/latency feasibility before the UI overhaul and complete the authoritative path in 0.10.
+- **Business direction:** Validate speedrunner engagement first. Monetization is optional, and a free 1.0 is valid. A validated commercial offer is no longer a mandatory release gate. Monetization implementation still requires explicit approval.
+- **Presentation/identity:** Skip concept-art and character-model design. Use clear abstract/process-based presentation, typography, charts, timing feedback and restrained audio. A humanoid avatar, cosmetic identity system and separate tactical scene are outside the required 1.0 scope.
 - **Theme:** Uncommitted. Mining labels such as “Ore” and “Alloy” are placeholders; economic IDs and game rules should not depend on a mining setting.
 
 ## 2. Prototype 0.1 — baseline and design history
@@ -68,7 +68,7 @@ Unity logged a warning about the previously repaired Visual Studio package cache
 file; package operations may replace that local repair. Long-term balance and
 engagement remain questions for subsequent experiments.
 
-## 3. Shared progress, direction gate and branch milestones
+## 3. Prototype progress and approved release milestones
 
 ### 0.2 — Economic depth experiment — complete
 
@@ -149,110 +149,118 @@ user's longest playtest so far (duration not recorded). Future progression ideas
 custom success/critical multipliers, upgrades to Fast Conversion's ratio, and more
 manual timing triggers using keys or separate clickable skill windows.
 
-**Candidate audience direction:** Explore speedrunning, with intricate timing
-combinations and upgrade sequencing. This would require a primary finish objective
-or defined maximum/target score, plus elapsed completion time. This remains a
-design hypothesis; see [Prototype05.md](Prototype05.md) for the collected notes.
+**Direction update (November 1):** The user selected speedrunning, with intricate
+timing combinations and upgrade sequencing. The initial 0.5 slice supplies the
+economy for 0.6; sustained repeat-run engagement remains to be established. See
+[Prototype05.md](Prototype05.md) for the original playtest notes.
 
-**Question:** Which progression makes players want another run or another management session?
+**Original experiment question:** Which progression makes players want another run or another management session? The primary direction is now selected; repeat-run engagement still needs evidence.
 
 - Test a limited next tier of processes, unlocks or alternative operating modes only after evidence from 0.2–0.4.
 - Introduce a small number of long-term goals powered by lifetime XP; distinguish milestone tracking from currency spending.
-- Prototype lightweight progression visualization and optional placeholder cosmetic identity, if it supports player attachment.
-- Keep additions small enough to compare the two directions on the same underlying economy. The 100/500 XP gates are early goals; they do not establish either branch's long-term appeal.
+- Prototype lightweight progression visualization where it helps players understand routing. Cosmetic identity is excluded from the approved release scope.
+- Keep additions small enough to measure their effect on repeat-run appeal. The 100/500 XP gates are early goals; they do not establish long-term engagement.
 - **Exit criterion:** Record a primary direction, its player objective, and evidence from comparable playtests. The original goal of a compelling next session remains relevant; for speedrunning that can mean improving a personal best rather than accumulating permanent power.
 
-### Direction decision after the initial 0.5 slice
+### Approved direction decision — November 1, 2026
 
-Both directions can use allocation, customized upgrades, success/critical
-multipliers, Fast-mode ratio upgrades and combos. Their purpose and balance
-change with the player's objective. Choose a primary loop before expanding the
-upgrade tree or committing to backend/content scope.
+The user chose speedrunning and approved the milestones below, including the
+main menu, options, statistics and staged tutorial. The former branching
+speedrun/management plan and proposed direction-comparison experiment are
+superseded. This is a product decision, not evidence that repeat-run retention
+has already been demonstrated. Earlier prototype evidence remains above.
 
-```mermaid
-flowchart TD
-    P["Current prototype: shared 0.5 progression"] --> G["Compare motivations; choose a primary loop"]
-    G --> A["A: timed runs and execution mastery — 0.6A to 0.9A"]
-    G --> B["B: continuing active/idle management — 0.6B to 0.9B"]
-    A --> R["1.0: scoped Windows release and validated commercial offer"]
-    B --> R
-```
+### 0.6 — Complete local speedrun loop
 
-| Decision | A — Speedrun execution and routing | B — Active/idle management and upgrades |
-|---|---|---|
-| Main motivation | Reach a defined finish faster, or reach a defined score under fixed rules | Build a stronger economy and pursue the next unlock or investment goal |
-| Skill expression | Precise inputs, timing combinations, allocation routes and purchase order | Bottleneck diagnosis, investment planning, allocation and choosing when to play actively |
-| Time structure | Comparable runs with a start, finish, result and retry | Continuing progress, optional active phases, downtime and a meaningful return |
-| XP and upgrades | Standardized within a run/category; decide carryover before comparing results | Persistent milestones and specialized upgrades; retain worthwhile passive play |
-| First success signal | Voluntary retries and personal-best improvement through strategy and execution | Voluntary return, clear next goals and useful decisions after an idle interval |
-| Business constraint | Paid features must preserve comparable competitive conditions | Paid features must preserve meaningful decisions and the intended active/idle balance |
+- Define one target-XP objective and a versioned ruleset with identical starts, fixed comparable speed, permitted inputs, XP/unlock state and no inherited account power. The earlier 2,000 XP suggestion is provisional until a short playtest establishes feasibility.
+- Implement countdown/start, elapsed time, automatic finish, a basic results screen and quick retry. Define timer precision, action ordering at the finish boundary, pause, background/focus loss, abort/restart and interrupted-run behavior before comparing times. Countdown must not generate progress; completion must freeze the result exactly once.
+- Save local PBs by compatible run type/ruleset, retain historical records and preserve preferences across restarts. Separate practice results and altered rules from comparable PBs. These remain local untrusted records; ranked server submissions are unavailable until 0.10.
+- Record timestamped upgrade purchases, unlocks, allocations, mode changes and timing outcomes, plus bounded timeline samples, so later analysis does not depend on reconstructing missing data. Define attempt, normal-hit, critical, miss and skipped-opportunity semantics. Do not build the full charts yet.
+- Add a landing/main menu before simulation begins. **New Run** opens a dialog showing the available objective, options and rules before confirmation. Only supported choices are selectable; critical presets arrive in 0.7 and additional targets in 0.8.
+- Put **How to Play** directly beneath New Run. The initial guide is one paragraph explaining the goal, economy, upgrades and basic timing controls; no guided tutorial is required yet.
+- Provide top-level **Options** for game configuration and a **Statistics** entry with basic PB information. Save the basic supported audio/display/control preferences; fuller keyboard remapping comes in 0.7, aggregate history/reports in 0.8 and live leaderboards in 0.10. Ordinary presentation settings must not silently change competitive conditions.
+- **Exit evidence:** Repeat attempts have comparable starts and finish rules; players can finish, view a result, retry and recover PBs/options after restarting. Deterministic and Unity integration tests cover boundaries and lifecycle behavior. No claim of trusted public results.
 
-**Proposed comparison experiment — not implemented:** Reuse the current economy
-and unlocks, with familiarization first and roughly comparable total exposure.
+### 0.7 — Execution depth and critical-range experiment
 
-1. **Speedrun task:** Try repeat fresh starts toward one recorded target, provisionally 2,000 XP. Confirm it is reachable within the test budget, then keep the target and starting rules fixed. Try to beat the previous completion time through routing and timing.
-2. **Management task:** Pursue a concrete upgrade/unlock goal through active, passive and return phases in one continuing session. Include a real short idle interval and decide what to do on return. The current unsaved build must remain open; this cannot demonstrate save/reconnect or multi-session retention.
-3. **Compare the appeal:** Record target/time or unfinished progress, upgrade and allocation decisions, timing use, confusion, fatigue and which activity the player voluntarily wants to repeat. Alternate test order across testers where practical. Higher XP alone does not select a direction.
+- Add one additional manual timing opportunity, keyboard controls/remapping and a small set of upgrades with meaningful routing trade-offs. Avoid an uncontrolled expansion of the upgrade tree or timing windows.
+- Experiment with a few critical presets: wider/lower reward, standard, narrower/higher reward. Select before a run and lock for that attempt. Initially keep the ordinary success zone unchanged: failing to hit critical can still yield a normal success.
+- Record the selected configuration in results. Initially offer every player the same choices within a category; split boards only if playtesting shows distinct competitive formats are needed. Mid-run customization, continuous sliders and combos remain optional later experiments rather than promised scope.
+- Evaluate completion times, attainable output, hit accuracy, route changes, fatigue and whether one preset dominates. Equal theoretical reward does not prove equal practical difficulty or interesting choices; downstream bottlenecks also matter.
+- Prove the portable simulation outside Unity and run a bounded timing/authority feasibility experiment before the 0.9 UI freeze. Define server timing, input ordering, latency treatment and integrity limits without treating client timestamps or deterministic replay as proof of honest human input. Concrete backend/security changes still require their applicable approval.
+- **Exit evidence:** Both routing and execution affect results; controls are responsive; critical choices have useful trade-offs or are revised based on evidence. The future authoritative timing approach is feasible enough to avoid a late gameplay redesign.
 
-Before timing comparisons, define start/finish events, elapsed-time measurement,
-pause/background behavior and permitted inputs. Run comparison uses fixed 1x;
-the current 5x/20x controls are for practice/testing. Decide whether XP gates
-restart per run or a category uses standardized unlocks; inherited account power
-cannot silently change comparable starting conditions. A local stopwatch can test
-appeal before trusted competitive results are built.
+### 0.8 — Multiple run types and post-run analysis
 
-**Decision output:** Choose A or B as the primary release hypothesis and record
-why. If evidence is mixed, repeat a small targeted experiment. A hybrid remains
-possible, but secondary features should support the chosen primary loop; a hybrid
-needs evidence that one economy can serve both motivations without weakening them.
+- Add a small set of short, medium and long target-XP categories; choose actual targets through playtesting. Record ruleset version, target, starting unlocks and legal settings with every result. Preserve historical PBs without comparing incompatible balance versions.
+- Build a Statistics menu containing personal statistics and a leaderboard destination. Personal views include PBs per category, run history, completed/abandoned runs, playtime and timing accuracy. Live global data is deferred to 0.10 and must not be presented as available beforehand.
+- Add run-overview graphs for XP/output over time, milestone splits and comparisons with a compatible PB. Show a timestamped upgrade path and allocation/mode changes, distinguishing unlocks from purchases.
+- Report attempts, normal successes, criticals, misses, accuracy and timing performance. Use bounded storage/sampling and clear metric definitions so long or abandoned attempts remain manageable.
+- **Exit evidence:** Players can explain where they gained or lost time and identify a change for their next attempt. Recorded events, statistics and chart values agree.
 
-### Branch A — Speedrun-focused pre-1.0 path
+### 0.9 — Dedicated UI overhaul
 
-| Stage | Work and exit evidence |
-|---|---|
-| **0.6A — Repeatable run and result proof** | Build one fixed objective or score format, identical starts, finish detection, elapsed time, results, personal best and quick retry. Version the run rules, XP/unlock state and allowed speed/pause behavior. Exit: repeated runs are comparable and players understand how to finish and improve. |
-| **0.7A — Execution and upgrade vertical slice** | Test one additional timing trigger, keyboard bindings/remapping or separate clickable windows, and a small set of specialized upgrades. Explore combos and critical/success multipliers with bounded rules. Add readable run feedback and lightweight presentation. Exit: routing and execution both matter; controls are responsive and mistakes are understandable. |
-| **0.8A — Trustworthy results and external alpha** | Prove the portable simulation outside Unity, then one authoritative run/result/account path. Specify action ordering, timing/latency policy, result eligibility, reconnect handling and ruleset compatibility. Deterministic replay alone does not prove human input. External tests measure voluntary retries, personal-best improvement, route variety, fatigue, device differences and exploit attempts. Exit: the chosen result format is reproducible, its integrity limits are documented, and repeat play is supported by evidence. |
-| **0.9A — Competitive release scope and business test** | Lock the smallest Windows release: objective(s), rules/categories, practice options, input/accessibility support, performance, result persistence and deployment. Assess a business hypothesis without changing comparable run conditions. Exit: a testable 1.0 checklist, a scoped commercial offer and documented limitations. |
+- This minor release is entirely for presentation, usability and onboarding. Gameplay rules, event recording and result calculations must already exist. Do not add gameplay or backend features to this milestone.
+- Overhaul the full flow: landing page, New Run dialog, Options, How to Play, Statistics/leaderboard layouts, gameplay controls, timing feedback, results and graphs. Reduce pointer travel and clutter; make upgrades, bottlenecks and run status legible.
+- Organize Options around audio levels/devices, graphics/display, keyboard bindings, supported input/output configuration and accessibility/feedback. Make settings accessible during play under the run's pause rules; persist supported preferences and handle unavailable devices/settings gracefully.
+- Replace the initial paragraph-only guide with a skippable, replayable tutorial using progressive disclosure. Introduce concepts when relevant, highlight/circle controls and evaluate short animations where useful. Refine the exact format through playtesting rather than requiring an animation for every step.
+- Validate readable scaling, non-color-only feedback, clear keyboard focus, input responsiveness and supported Windows resolutions. Use process-based visuals and restrained sound; no concept-art or character-model design.
+- **Exit evidence:** The entire run workflow is clear and comfortable, including first use, repeat runs and reports. Tutorial help supports discovery without obstructing experienced players.
 
-### Branch B — Active/idle management pre-1.0 path
+### 0.10 — Global leaderboard and trusted records
 
-| Stage | Work and exit evidence |
-|---|---|
-| **0.6B — Continuing progression and return proof** | Add one medium-term goal and a small specialized upgrade choice. Prove saving/resuming one continuing state and an explicit elapsed-time/offline policy; identify the authoritative account path to validate before release. Keep active timing optional. Exit: returning players understand what changed and have a useful next decision; progression can resume reliably in the prototype's declared trust model. |
-| **0.7B — Management and progression vertical slice** | Test limited process/mode breadth, success/critical or conversion-ratio upgrades, and low-friction allocation/presets. Build clear goals, bottleneck feedback, return summaries and a coherent economic environment. A separate tactical scene/avatar is optional. Exit: active, passive and mixed approaches remain worth trying, and new progression deepens choices without restoring UI overload. |
-| **0.8B — Authoritative persistence and external alpha** | Prove the portable simulation outside Unity and one account/action/save/reconnect path, including idempotent spending, migration, authoritative elapsed time and offline caps. External tests include real return intervals, objective clarity, meaningful purchases, passive viability and attention burden. Exit: the save flow is robust, device-clock changes cannot create progression, and return play is supported by evidence. |
-| **0.9B — Sustainable release scope and business test** | Lock Windows content depth, onboarding, accessibility, progression pacing, save reliability, offline/return expectations and deployment. Test a business hypothesis while preserving useful upgrade choices and voluntary active play. Exit: a testable 1.0 checklist, a scoped commercial offer and documented limitations. |
+- Complete durable identity, the authoritative economy/run/timing/result path, cloud records and global leaderboards per compatible run type/ruleset. Local prototype PBs must not be promoted into verified results without an acceptable validation path.
+- Show top times, nearby ranks and the player's position within Statistics, with run-type/ruleset filtering and recorded critical configuration. Implement tie handling, invalid-result removal, display-name/privacy decisions and basic moderation.
+- Validate rules/configuration and input order server-side. Handle repeated/failed submissions idempotently, reconnects, interrupted runs, incompatible client versions and service failures. Publish clear eligibility, pause/background and timing/latency policies.
+- Preserve local practice with clear eligibility labeling. Deterministic replay can check simulation consistency but does not establish that inputs came from a human. Document exploit/automation limits instead of claiming perfect anti-cheat.
+- **Exit evidence:** Eligible results persist across reconnects, duplicates cannot create inconsistent records, and a client-reported completion time alone cannot establish a ranked result. End-to-end integrity and failure-path checks pass.
 
-### Shared release requirements and monetization decision
+### 0.11 — External beta and release candidate
 
-- Both branches require deterministic tests, reliable storage for their promised state, usable controls, accessibility, performance/crash checks, a coherent presentation, privacy decisions and a reproducible Windows release pipeline.
-- Durable identity and eventual macOS/iOS/Android compatibility remain requirements. Define what carries between clients: account progress, run records, settings and/or ownership, according to the selected branch.
-- Validate the core appeal before scaling cloud services or adding large content trees. Any public competitive result or persistent economic progression must meet the chosen authority requirements before being presented as trustworthy.
-- Monetization is possible to explore on either branch; neither speedrunning nor management predetermines premium versus free-to-play. Test willingness to pay and the intended offer. Cosmetics/content/access and convenience have different effects on competition and on economic bottlenecks.
-- For A, define competitive eligibility and keep comparable runs under the same gameplay conditions. For B, check that convenience does not erase investment choices or make active play feel compulsory. Avoid artificial attempt scarcity during validation.
-- Decide the initial commercial model and minimum offer before 1.0 scope locks; defer elaborate stores, premium currencies, subscriptions and live-service schedules unless the selected offer needs them. This roadmap does not authorize monetization implementation.
+- Test with speedrunners, measuring voluntary retries, PB improvement, route variety, target durations, fatigue and clarity. Agree practical engagement criteria before evaluating the beta; collecting more XP alone is not evidence of appeal.
+- Tune targets, upgrade pacing and critical choices, then freeze the release ruleset. Preserve incompatible historical records when balance changes.
+- Verify input/display/device differences, performance, crash handling, save recovery, backend recovery, clean installation, updates, onboarding, accessibility and the complete menu-to-result flow.
+- **Exit evidence:** Repeat play and improvement have external support, records are reliable and no release-blocking defects remain. Known competitive and platform limitations are documented.
+
+### 1.0 — Scoped Windows release
+
+- Ship the validated run types, local PB/history, global leaderboards, post-run analysis, main menu/options and progressive tutorial with the finished UI.
+- Complete distribution packaging, operating-cost planning, support/privacy information, release monitoring and a reproducible Windows build/deployment process.
+- Require passing deterministic simulation checks, Unity integration checks and end-to-end competitive-flow verification on the release candidate. Verify actual builds and Console output; do not substitute prior prototype test counts for current release evidence.
+- Preserve future macOS/iOS/Android portability and define which records/preferences can follow a durable identity. Shipping those clients is outside the required Windows 1.0 scope.
+- **Engagement is the product gate; monetization is optional.** A free release is valid. Stores, premium currencies, subscriptions and paid gameplay advantages are not required. Any later monetization needs separate approval and must preserve comparable competitive conditions.
+
+### Main menu and tutorial flow
+
+1. **New Run:** Open a dialog for available target/run type, critical configuration (from 0.7) and practice/competitive options when supported. Show rules and eligibility before confirmation, then start the countdown.
+2. **How to Play:** Immediately beneath New Run. One paragraph in 0.6; a guided, progressive, skippable and replayable tutorial in 0.9.
+3. **Options:** Audio, graphics/display, keyboard/input and supported input/output/accessibility settings. Preferences survive sessions; competitive restrictions are explicit.
+4. **Statistics:** Personal PBs first, then history/aggregate statistics and detailed run reports in 0.8, plus live global leaderboards in 0.10.
+
+No simulation progress occurs while the player is on the landing page or selecting
+a new run. Unimplemented choices are omitted or clearly unavailable rather than
+presented as functioning ranked, device or configuration features.
 
 ## 4. Cross-cutting engineering workflow
 
 - Unity 6 + C#, VS Code/Codex through Unity CLI/Pipeline; Git/GitHub source control.
 - The Codex integration has successfully inspected the running Unity project. Separate command-line `codex` on Windows PATH is not required for the VS Code workflow.
-- **Lead orchestrator:** GPT-6.1 Sol for architecture, orchestration, integration and final verification; only lead interacts with the mutable Unity Editor.
-- **Workers:** GPT-6 Luna for bounded implementation/tests with `fork_turns: "none"` and explicit file ownership; at most two worker agents concurrently unless justified.
+- **Lead orchestrator:** Own architecture, shared contracts, scheduling, integration and final verification; use stronger reasoning for these decisions. Only the lead interacts with the mutable Unity Editor by default.
+- **Workers:** Use low or medium reasoning effort for bounded implementation/tests, with `fork_turns: "none"` when setting supported overrides and explicit file ownership. Use only runtime-supported models/settings; do not assume relative pricing or claim cost savings without evidence. At most two worker agents concurrently unless justified.
 - Never equate subagent completion with verification. Run actual Unity/tests, inspect errors and Git diff. Avoid parallel edits of scenes/shared assets. Don't commit/push without approval.
-- Keep simulation theme-independent and separate from Unity view. Introduce networking and monetization only when needed for the associated experiment.
+- Keep simulation theme-independent and separate from Unity view. Introduce networking only for the timing feasibility experiment and authoritative competitive path; monetization is optional and separately approved.
 
-## 5. Open questions for the next session
+## 5. Remaining design decisions
 
-1. Is the stronger motivation improving a repeatable run or developing and returning to a continuing economy?
-2. What fixed finish/score target would expose routing and timing skill, and which clock, pause and unlock rules make attempts comparable?
-3. What management milestone creates an appealing return objective beyond the first unlocks, while keeping passive play useful?
-4. Which single customized upgrade or timing input would best distinguish the directions without expanding scope prematurely?
-5. If a hybrid is preferred, which loop is primary, and what evidence supports the secondary loop?
-6. What state needs persistence and authority first for the chosen branch? What remains a local prototype claim?
-7. Which theme/presentation supports that loop, and does an avatar or separate tactical scene actually add value?
-8. What commercial offer fits the selected experience while preserving either fair comparisons or meaningful management decisions?
+1. Which first XP target produces a feasible, interesting run on the existing economy? Treat 2,000 XP as a candidate, not accepted balance.
+2. What precise start/finish, action-ordering, timer, pause, focus-loss and interrupted-run rules define a comparable local attempt?
+3. Which basic settings can be supported honestly in 0.6, and which remain deferred to remapping or the UI overhaul?
+4. Which additional timing opportunity and small upgrade set best expose routing/execution trade-offs in 0.7?
+5. What bounded critical-width/reward presets remain interesting across player skill levels? Does testing justify separate categories?
+6. Which authoritative timing/latency policy preserves responsiveness while supporting defensible public results?
+7. Which chart comparisons and tutorial steps actually help players improve without creating clutter?
+8. What engagement evidence, operational budget and distribution channel support the scoped Windows release? Monetization is not a prerequisite.
 
 ## 6. Suggested first task when resuming
 
-> Run the small direction-comparison experiment in section 3 on the existing economy. Agree one feasible finish target and timing rules for repeat attempts, then compare that experience with a continuing active/idle management session and a return after an idle interval. Record which activity players want to repeat. Choose a primary branch before implementing its 0.6 work; keep specialized upgrades, combo ideas and extra timing inputs as candidates until that choice gives them a purpose.
+> Build 0.6 after defining the first run target, lifecycle/timing rules and small shared contracts for run configuration, immutable results, event capture and local record storage. Use at most two workers plus the lead, with non-overlapping file ownership. Keep the Unity Editor under one owner's control. Integrate the menu, basic options/guide, comparable run, result, PB persistence and quick-retry flow, then run final simulation/Unity checks and playtest repeated attempts. Do not pull later critical customization, charting, full tutorial, backend or leaderboard implementation into 0.6.

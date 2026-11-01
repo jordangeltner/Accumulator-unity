@@ -64,15 +64,16 @@ continued iteration but does not establish the milestone's long-term exit criter
   separate clickable timing windows. Explore combinations of skill timing,
   resource allocation and upgrade sequencing.
 
-## Possible audience direction: speedrunning
+## Speedrunning direction update
 
-The [branching roadmap](UNITY_GAME_PRE_1_0_ROADMAP.md) now defines the direction
-comparison and the separate speedrun/management paths through 1.0. This document
-records the current progression prototype and candidate mechanics.
+The [release roadmap](UNITY_GAME_PRE_1_0_ROADMAP.md) now defines the approved
+speedrun path through 1.0. This document records the 0.5 progression prototype
+and its original candidate mechanics.
 
-The user suggested a game focused on speedrunners, rewarding intricate timing
-combinations and upgrade decisions. This is a candidate direction for exploration,
-not a locked change to the overall vision.
+The user originally suggested a game focused on speedrunners, rewarding intricate
+timing combinations and upgrade decisions. On November 1, 2026, the user selected
+this direction and approved the release roadmap. That decision does not establish
+long-term engagement; repeat-run appeal still needs playtesting.
 
 Such play would need a clear primary objective or defined maximum/target score,
 with the time taken to reach it displayed alongside the result. Define the finish
