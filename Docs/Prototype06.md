@@ -5,6 +5,15 @@ for commit/push after playtest feedback. Automated checks passed. Measured
 target-duration feedback and sustained repeat-run engagement remain unverified.
 This is a local prototype, not a trusted online competitive service.
 
+**Record-storage follow-up (November 1):** A user-completed 2,000 XP run took
+306,100 ms (**5:06.1**) but produced no saved PB. Read-only inspection confirmed
+the retained result was excluded with `Options opened; practice only.` and the
+profile's PB list was empty. Only eligible improvements are persisted today;
+other completed runs have no durable history. The roadmap now explicitly tracks
+local-PB eligibility/save feedback as a 0.6 follow-up, full durable personal run
+history/reports in 0.8, and verified server records in 0.10. No rule or storage
+implementation was changed by recording this report.
+
 ## Play
 
 Open `Assets/Scenes/Prototype01.unity` and enter Play Mode. The game now starts

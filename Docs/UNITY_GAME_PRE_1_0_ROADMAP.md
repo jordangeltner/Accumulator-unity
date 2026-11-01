@@ -184,6 +184,19 @@ limitations and playtest instructions: [Prototype06.md](Prototype06.md).
 UI revisions below, the user accepted 0.6 and authorized commit/push. This accepts
 the implemented slice without claiming measured retention or final target balance.
 
+**Open record-storage follow-up (November 1):** The user completed a 2,000 XP
+run in **5:06.1** but found no PB saved. Read-only inspection of the retained
+result confirmed `Options opened; practice only.` as its eligibility reason;
+the on-disk profile contained no PBs. The current implementation only attempts
+to save eligible PB improvements and has no durable history for other completed
+runs. This explains this instance; it does not establish that every missing-PB
+report has the same cause.
+
+- Review the local-PB interruption policy separately from future ranked eligibility. Opening game settings must have a clear, understandable consequence; do not silently change the existing rules while this decision is open.
+- Make result feedback distinguish **PB saved**, **run excluded from PB comparison (with reason)** and **storage failed**. An in-memory best must not be represented as durably saved when a write fails.
+- Verify the full eligible completion → save → restart → Statistics path against the actual application profile, alongside missing/corrupt-file and failed-write cases. Keep this as an explicit 0.6 follow-up rather than treating all record concerns as future leaderboard work.
+- Preserve non-PB results through the durable run history in 0.8 below. Competitive eligibility must not determine whether a run appears in personal history.
+
 - Define one target-XP objective and a versioned ruleset with identical starts, fixed comparable speed, permitted inputs, XP/unlock state and no inherited account power. The earlier 2,000 XP suggestion is provisional until a short playtest establishes feasibility.
 - Implement immediate start, elapsed time, automatic finish, a basic results screen and quick retry. Define timer precision, action ordering at the finish boundary, Options, background/focus loss, abort/restart and interrupted-run behavior before comparing times. Begin Run and retry have no delay; completion must freeze the result exactly once. The initial countdown proposal was removed after user playtesting feedback.
 - Save local PBs by compatible run type/ruleset, retain historical records and preserve preferences across restarts. Separate practice results and altered rules from comparable PBs. These remain local untrusted records; ranked server submissions are unavailable until 0.10.
@@ -206,6 +219,8 @@ the implemented slice without claiming measured retention or final target balanc
 ### 0.8 — Multiple run types and post-run analysis
 
 - Add a small set of short, medium and long target-XP categories; choose actual targets through playtesting. Record ruleset version, target, starting unlocks and legal settings with every result. Preserve historical PBs without comparing incompatible balance versions.
+- **Durable local run records:** Persist completed run summaries whether they are PB improvements, slower attempts, Practice or PB-ineligible. Record abandoned attempts with their status as well. Keep elapsed time, category/ruleset/configuration, completion status, timing statistics and eligibility/exclusion reasons separately from PB selection. History must survive returning to the menu, retrying and restarting the application.
+- Store the bounded timeline and upgrade/allocation/mode events needed to reopen a historical run overview. Define retention limits and pruning/migration/recovery behavior explicitly; surface write failures and never discard PBs when pruning history. Test reopening reports after application restart, not just viewing data still in memory.
 - Build a Statistics menu containing personal statistics and a leaderboard destination. Personal views include PBs per category, run history, completed/abandoned runs, playtime and timing accuracy. Live global data is deferred to 0.10 and must not be presented as available beforehand.
 - Add run-overview graphs for XP/output over time, milestone splits and comparisons with a compatible PB. Show a timestamped upgrade path and allocation/mode changes, distinguishing unlocks from purchases.
 - Report attempts, normal successes, criticals, misses, accuracy and timing performance. Use bounded storage/sampling and clear metric definitions so long or abandoned attempts remain manageable.
@@ -223,6 +238,7 @@ the implemented slice without claiming measured retention or final target balanc
 ### 0.10 — Global leaderboard and trusted records
 
 - Complete durable identity, the authoritative economy/run/timing/result path, cloud records and global leaderboards per compatible run type/ruleset. Local prototype PBs must not be promoted into verified results without an acceptable validation path.
+- Store verified competitive run records durably on the service and define their synchronization/recovery policy. Keep local personal history and verified leaderboard records distinguishable; practice or excluded history entries are not verified competitive submissions.
 - Show top times, nearby ranks and the player's position within Statistics, with run-type/ruleset filtering and recorded critical configuration. Implement tie handling, invalid-result removal, display-name/privacy decisions and basic moderation.
 - Validate rules/configuration and input order server-side. Handle repeated/failed submissions idempotently, reconnects, interrupted runs, incompatible client versions and service failures. Publish clear eligibility, pause/background and timing/latency policies.
 - Preserve local practice with clear eligibility labeling. Deterministic replay can check simulation consistency but does not establish that inputs came from a human. Document exploit/automation limits instead of claiming perfect anti-cheat.
@@ -276,7 +292,7 @@ presented as functioning ranked, device or configuration features.
 
 ## 6. Suggested first task when resuming
 
-> Use accepted 0.6 as the baseline for planning the bounded 0.7 execution slice: one additional timing opportunity, controls/remapping, a small upgrade set and the critical-range experiment. Keep collecting target-duration, Options/focus-policy and repeat-run feedback using Prototype06.md; the 2,000 XP target remains provisional. Preserve comparable rulesets when changing balance, and keep later charting, the full tutorial and global leaderboard implementation in their assigned milestones.
+> Address the open 0.6 record-storage/eligibility feedback first, including a real-profile save/restart check and clear result-save status. Then use accepted 0.6 as the baseline for the bounded 0.7 execution slice: one additional timing opportunity, controls/remapping, a small upgrade set and the critical-range experiment. Keep collecting target-duration and repeat-run feedback. Durable full history/report storage belongs to 0.8; authoritative global records belong to 0.10.
 
 ## 7. Post-1.0 ideas — not scheduled or approved for implementation
 
