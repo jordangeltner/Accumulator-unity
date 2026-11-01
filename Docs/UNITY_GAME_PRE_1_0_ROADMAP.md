@@ -264,3 +264,22 @@ presented as functioning ranked, device or configuration features.
 ## 6. Suggested first task when resuming
 
 > Build 0.6 after defining the first run target, lifecycle/timing rules and small shared contracts for run configuration, immutable results, event capture and local record storage. Use at most two workers plus the lead, with non-overlapping file ownership. Keep the Unity Editor under one owner's control. Integrate the menu, basic options/guide, comparable run, result, PB persistence and quick-retry flow, then run final simulation/Unity checks and playtest repeated attempts. Do not pull later critical customization, charting, full tutorial, backend or leaderboard implementation into 0.6.
+
+## 7. Post-1.0 ideas — not scheduled or approved for implementation
+
+### Challenge / Prestige modifier with financial stakes
+
+**Idea recorded November 1, 2026:** Explore an optional high-prestige challenge
+modifier in which distractions create financial stakes. This is a monetization
+hypothesis, not a commitment to ship or evidence that players would enjoy it.
+
+- **Entry concept:** Require a valid linked payment method with explicit charge authorization, or a prepaid amount. Linking a payment method alone is not consent to unspecified future charges.
+- **Challenge concept:** Enable pop-ups or other distractions during a run. Clicking a designated distraction or failing its challenge would trigger a disclosed monetary penalty. Possible formats include ad-like distractions, quick-response minigames or short puzzles; the exact interaction and failure conditions are undecided.
+- **Recognition:** Aim for a prestigious optional category awarding accolades such as badges, leaderboard-visible profile-name customization or achievements. Rewards would be recognition only, with no gameplay power or cash prizes. Whether players value this prestige remains to be tested.
+- **Competitive separation:** Record the modifier and its rules, and compare like-for-like challenge runs separately from ordinary speedruns. Standard play remains available without financial stakes.
+- **Exploration first:** Prototype with simulated stakes before handling real money. Evaluate whether distractions add interesting execution decisions and whether players voluntarily want to repeat the mode.
+- **Before any real-money implementation:** Resolve explicit opt-in, visible penalty amounts and failure rules, a player-approved maximum loss per run/session, no automatic replenishment, unintended-click/dispute handling, and payment/platform/legal feasibility. Avoid undisclosed or uncapped billing. Monetization, payment/security changes and concrete dependencies require separate approval under AGENTS.md.
+
+This idea does not change the approved 0.6–1.0 scope or make monetization a
+release requirement. No payment integration or paid-penalty behavior is authorized
+by recording it here.
