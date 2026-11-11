@@ -35,6 +35,11 @@ policy and the clarity of save feedback are tracked for review.
 
 ## Run on Windows
 
+**[Download the complete Windows x64 package (.zip, 39 MB)](https://github.com/jordangeltner/Accumulator-unity/releases/download/v0.6.0-windows-preview.1/Accumulator-windows-x64.zip)**
+
+This is the Prototype 0.6 Windows preview. The ZIP includes the executable and
+all required runtime/data files; Unity does not need to be installed to play.
+
 The Windows package contains `Accumulator.exe` and its supporting Unity files.
 Extract the **entire ZIP** into a folder, then launch the executable. Keep the
 executable, data directory, and runtime files together.
@@ -44,6 +49,9 @@ include `Assets/Scenes/Prototype01.unity` as the starting scene. Build to
 `Accumulator.exe` in a new output folder and distribute the entire generated
 folder. A Unity Editor installation is needed to build from source; it is not
 needed to play the packaged application.
+
+See [Windows build and packaging](Docs/WINDOWS_BUILD.md) for the repeatable ZIP
+build command and current verification limits.
 
 ## Open from source
 
