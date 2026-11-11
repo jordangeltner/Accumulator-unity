@@ -343,6 +343,7 @@ namespace Accumulator.Tests.PlayMode
             var result = controller.Session.Result;
             Assert.That(controller.CurrentScreen, Is.EqualTo("Results"));
             Assert.That(FindText("RunResult").text, Does.Contain("NEW PERSONAL BEST"));
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best saved."));
             Assert.That(result.ElapsedMilliseconds, Is.EqualTo(2000000));
             Assert.That(controller.Profile.FindBest(result.CategoryKey).elapsedMilliseconds, Is.EqualTo(result.ElapsedMilliseconds));
             Assert.That(File.Exists(profilePath), Is.True);
@@ -367,6 +368,97 @@ namespace Accumulator.Tests.PlayMode
             Assert.That(controller.CurrentScreen, Is.EqualTo("Results"));
             Assert.That(controller.Profile.PersonalBests.Count, Is.Zero);
             Assert.That(FindText("RunResult").text, Does.Contain("PB ineligible"));
+            Assert.That(FindText("RunResult").text, Does.Contain("PB excluded: Practice run."));
+        }
+
+        [UnityTest]
+        public IEnumerator ExcludedCompletionExplainsWhyNoPbWasSaved()
+        {
+            Begin();
+            controller.OpenOptions();
+            controller.CloseOptions();
+            controller.AdvanceRunMilliseconds(2000000);
+            yield return null;
+            Assert.That(controller.CurrentScreen, Is.EqualTo("Results"));
+            Assert.That(FindText("RunResult").text, Does.Contain("PB excluded: Options opened; practice only."));
+            Assert.That(FindText("RunResult").text, Does.Not.Contain("Personal best saved."));
+            Assert.That(controller.Profile.PersonalBests, Is.Empty);
+            Assert.That(File.Exists(profilePath), Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator FailedFirstPbSaveIsNotPublishedInResultsMenuOrStatistics()
+        {
+            Directory.CreateDirectory(profilePath + ".tmp"); // Block the atomic temporary write.
+            Begin();
+            controller.AdvanceRunMilliseconds(2000000);
+            yield return null;
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best not saved."));
+            Assert.That(FindText("RunResult").text, Does.Contain("Could not save local profile"));
+            Assert.That(FindText("RunResult").text, Does.Not.Contain("NEW PERSONAL BEST"));
+            Assert.That(controller.Profile.PersonalBests, Is.Empty);
+            Assert.That(File.Exists(profilePath), Is.False);
+            controller.ReturnToMainMenu();
+            Assert.That(FindText("MenuBest").text, Does.Contain("No saved eligible run yet"));
+            yield return null;
+            ClickButton("Statistics");
+            Assert.That(FindText("PersonalStatistics").text, Does.Not.Contain("33:20.0"));
+        }
+
+        [UnityTest]
+        public IEnumerator FailedImprovementPreservesSavedPbAndLaterAttemptCanSave()
+        {
+            Begin();
+            Assert.That(controller.Session.TrySetAllocation(Economy.Developer, 0, out _), Is.True);
+            controller.AdvanceRunMilliseconds(500);
+            Assert.That(controller.Session.TrySetAllocation(Economy.Developer, 1, out _), Is.True);
+            controller.AdvanceRunMilliseconds(2000000);
+            string category = controller.Session.Result.CategoryKey;
+            string savedProfile = File.ReadAllText(profilePath);
+            Directory.CreateDirectory(profilePath + ".tmp");
+            controller.RestartRun();
+            controller.AdvanceRunMilliseconds(2000000);
+            yield return null;
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best not saved."));
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best: 33:20.5"));
+            Assert.That(controller.Profile.FindBest(category).elapsedMilliseconds, Is.EqualTo(2000500));
+            Assert.That(File.ReadAllText(profilePath), Is.EqualTo(savedProfile));
+            Assert.That(new LocalProfileStore(profilePath).Load(out _).FindBest(category).elapsedMilliseconds, Is.EqualTo(2000500));
+
+            Directory.Delete(profilePath + ".tmp");
+            controller.OpenOptions();
+            yield return null;
+            ClickButton("VolumeDown");
+            controller.CloseOptions();
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best not saved."), "An option save must not relabel the failed run save.");
+            Assert.That(new LocalProfileStore(profilePath).Load(out _).FindBest(category).elapsedMilliseconds, Is.EqualTo(2000500));
+            controller.RestartRun();
+            controller.AdvanceRunMilliseconds(2000000);
+            Assert.That(FindText("RunResult").text, Does.Contain("Personal best saved."));
+            Assert.That(controller.Profile.FindBest(category).elapsedMilliseconds, Is.EqualTo(2000000));
+            Assert.That(new LocalProfileStore(profilePath).Load(out _).FindBest(category).elapsedMilliseconds, Is.EqualTo(2000000));
+        }
+
+        [UnityTest]
+        public IEnumerator TiedAndSlowerResultsDoNotClaimAnotherPbSave()
+        {
+            Begin();
+            controller.AdvanceRunMilliseconds(2000000);
+            string savedProfile = File.ReadAllText(profilePath);
+            Directory.CreateDirectory(profilePath + ".tmp"); // No write should be attempted for these results.
+            controller.RestartRun();
+            controller.AdvanceRunMilliseconds(2000000);
+            yield return null;
+            Assert.That(FindText("RunResult").text, Does.Contain("No PB improvement; saved personal best unchanged."));
+            Assert.That(FindText("RunResult").text, Does.Not.Contain("NEW PERSONAL BEST"));
+            Assert.That(FindText("RunResult").text, Does.Not.Contain("Personal best saved."));
+            controller.RestartRun();
+            controller.Session.TrySetAllocation(Economy.Developer, 0, out _);
+            controller.AdvanceRunMilliseconds(500);
+            controller.Session.TrySetAllocation(Economy.Developer, 1, out _);
+            controller.AdvanceRunMilliseconds(2000000);
+            Assert.That(FindText("RunResult").text, Does.Contain("No PB improvement; saved personal best unchanged."));
+            Assert.That(File.ReadAllText(profilePath), Is.EqualTo(savedProfile));
         }
 
         [UnityTest]

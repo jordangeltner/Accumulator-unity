@@ -32,6 +32,7 @@ namespace Accumulator.Presentation
         private string optionsReturnScreen = "MainMenu";
         private RunResult handledResult;
         private bool resultWasNewBest;
+        private string resultRecordStatus = "";
         private double pendingFrameMilliseconds;
         private GameObject lastScrollSelection;
 
@@ -54,10 +55,12 @@ namespace Accumulator.Presentation
             ApplyOptions();
         }
 
-        private void SaveLocalProfile()
+        private bool SaveLocalProfile(LocalProfile candidate = null)
         {
-            bool saved = profileStore.Save(profile, out string status);
+            bool saved = profileStore.Save(candidate ?? profile, out string status);
+            if (saved && candidate != null) profile = candidate;
             ProfileStatus = saved ? "Local PBs and options saved." : status;
+            return saved;
         }
 
         private void ApplyOptions()
@@ -81,6 +84,7 @@ namespace Accumulator.Presentation
             selectedPractice = practice;
             handledResult = null;
             resultWasNewBest = false;
+            resultRecordStatus = "";
             pendingFrameMilliseconds = 0;
             timingResult = "";
             Feedback = "";
@@ -147,8 +151,27 @@ namespace Accumulator.Presentation
         {
             if (Session?.Result == null || ReferenceEquals(handledResult, Session.Result)) return;
             handledResult = Session.Result;
-            resultWasNewBest = profile.TryRecord(handledResult);
-            if (resultWasNewBest) SaveLocalProfile();
+            if (!handledResult.IsPersonalBestEligible)
+                resultRecordStatus = "PB excluded: " + handledResult.EligibilityReason;
+            else
+            {
+                var best = profile.FindBest(handledResult.CategoryKey);
+                if (best != null && best.elapsedMilliseconds <= handledResult.ElapsedMilliseconds)
+                    resultRecordStatus = "No PB improvement; saved personal best unchanged.";
+                else
+                {
+                    // Publish an improved PB only after its profile reaches durable storage.
+                    var candidate = profile.Copy();
+                    if (!candidate.TryRecord(handledResult))
+                        resultRecordStatus = "Personal best not recorded: local record limit reached.";
+                    else
+                    {
+                        resultWasNewBest = SaveLocalProfile(candidate);
+                        resultRecordStatus = resultWasNewBest ? "Personal best saved."
+                            : "Personal best not saved. " + ProfileStatus;
+                    }
+                }
+            }
             pendingFrameMilliseconds = 0;
             ShowScreen("Results");
         }
@@ -279,10 +302,10 @@ namespace Accumulator.Presentation
         {
             if (mainMenuRoot == null) return;
             var best = profile.FindBest(DefaultRunDefinition.CategoryKey);
-            menuBest.text = "2,000 XP  |  Personal best: " + (best == null ? "No completed standard run yet" : FormatTime(best.elapsedMilliseconds));
+            menuBest.text = "2,000 XP  |  Personal best: " + (best == null ? "No saved eligible run yet" : FormatTime(best.elapsedMilliseconds));
             profileStatusText.text = ProfileStatus;
             runRules.text = "Reach 2,000 XP as quickly as possible.\n"
-                + (selectedPractice ? "Practice runs do not update personal bests." : "Standard runs can set a local personal best.");
+                + (selectedPractice ? "Practice runs do not update personal bests." : "Standard runs can set a local personal best.\nOptions, focus loss or suspension excludes PBs.");
             modeDropdown.SetValueWithoutNotify(selectedPractice ? 1 : 0);
             int quality = QualitySettings.GetQualityLevel();
             volumeLabel.text = "Master volume: " + Mathf.RoundToInt(profile.Options.masterVolume * 100) + "%";
@@ -331,7 +354,7 @@ namespace Accumulator.Presentation
                 + $"\n\nTiming: {result.NormalHits} normal / {result.CriticalHits} critical / {result.Misses} misses"
                 + $"\nAttempts: {result.Attempts}  |  Skipped sweeps: {result.SkippedOpportunities}"
                 + (Session.RecordingTruncated ? "\nDetailed recording reached its storage limit." : "")
-                + "\n\n" + ProfileStatus;
+                + "\n\n" + resultRecordStatus;
         }
 
         public static string FormatTime(long milliseconds)

@@ -46,7 +46,14 @@ namespace Accumulator.Presentation.Persistence
     {
         internal const int MaximumRecords = 1000;
         private readonly List<PersonalBest> bests = new List<PersonalBest>();
-        public GameOptions Options { get; } = new GameOptions();
+        public GameOptions Options { get; private set; } = new GameOptions();
+
+        internal LocalProfile Copy()
+        {
+            var copy = new LocalProfile { Options = Options.Copy() };
+            foreach (var best in bests) copy.Import(best);
+            return copy;
+        }
 
         // Copies prevent a UI caller from mutating stored records through a returned DTO.
         public IReadOnlyList<PersonalBest> PersonalBests
