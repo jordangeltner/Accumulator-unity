@@ -1,0 +1,6 @@
+{
+  "name": "Accumulator.PlayMode.Tests",
+  "references": ["Accumulator.Core", "Accumulator.Presentation", "Unity.ugui"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}
