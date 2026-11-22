@@ -14,6 +14,26 @@ local-PB eligibility/save feedback as a 0.6 follow-up, full durable personal run
 history/reports in 0.8, and verified server records in 0.10. No rule or storage
 implementation was changed by recording this report.
 
+**PB save-feedback fix (November 10):** Improved records are now staged in a
+copied profile and published to Results, the main menu and Statistics only after
+the profile write succeeds. Results distinguish a saved PB, an excluded run with
+its reason, no improvement, and a failed save. Failed improvements preserve the
+previous saved PB; a later options save cannot silently publish the failed record.
+The pre-run dialog also warns about interruption exclusions. Opening Options,
+losing focus and suspension still exclude the attempt under the existing policy;
+changing that policy remains a separate design decision. Full durable history is
+still deferred.
+
+The bug-fix agent compiled the isolated worktree and ran **90/90 EditMode** and
+**30/30 PlayMode** tests successfully, including four new save-feedback
+regressions; Console ground truth showed no errors, warnings or compilation
+failure. The lead reviewed the patch and saved test reports. Tests use isolated
+profiles and did not modify live records. The separate test Editor was then
+closed. The published Windows preview predates this fix and has not been rebuilt
+with it; standalone verification of this change remains pending. The latest
+README and packaging changes were brought into the branch after these tests;
+no gameplay or test source changed during that update.
+
 ## Play
 
 Open `Assets/Scenes/Prototype01.unity` and enter Play Mode. The game now starts
